@@ -1,4 +1,5 @@
-﻿using ScannerLibrary;
+﻿using System.Net;
+using ScannerLibrary;
 
 namespace Scanner;
 
@@ -9,16 +10,20 @@ abstract class Program
         ArgumentParser parser = new ArgumentParser();
         parser.Parse(args);
         
+        IpHandler ipHandler = new IpHandler();
+        
         if (parser.ParsedOptions != null)
         {
             Console.WriteLine("Interface - " + parser.ParsedOptions.Interface);
             Console.WriteLine("Wait - " + parser.ParsedOptions.Wait);
-            Console.Write("Subnets - ");
+            Console.WriteLine("Subnets - ");
             foreach (var subnet in parser.ParsedOptions.Subnets)
             {
-                Console.Write(subnet + " "); 
+                Console.WriteLine(subnet + " "); 
+                int hosts = ipHandler.GetNumberOfHosts(subnet);
+                Console.Write($" - {hosts} hosts");
+                Console.WriteLine();
             }
-            Console.WriteLine();
         }
     }
 }

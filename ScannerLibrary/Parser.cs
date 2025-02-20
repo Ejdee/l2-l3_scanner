@@ -26,7 +26,11 @@ namespace ScannerLibrary
 
         private static void HandleParseError(IEnumerable<Error> errs)
         {
-            Console.WriteLine("Parsing arguments failed.");        
+            Console.WriteLine("Parsing arguments failed.");
+            for (int i = 0; i < errs.Count(); i++)
+            {
+                Console.WriteLine(errs.ElementAt(i));
+            }
         }
     }
 }

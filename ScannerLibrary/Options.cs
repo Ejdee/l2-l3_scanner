@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using CommandLine;
 
 namespace ScannerLibrary
@@ -17,7 +18,7 @@ namespace ScannerLibrary
 
         [Option('s', "subnet", Required = false, HelpText = "Segments to scan using IPv4 or IPv6 \"" +
                                                             "address. There can be multiple segments to be scanned.")]
-        public IEnumerable<string> Subnets { get; set; } = new List<string>();
+        public IEnumerable<string> Subnets { get; set; } = [];
     }
 }
 
