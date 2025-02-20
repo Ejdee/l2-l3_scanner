@@ -59,7 +59,16 @@ public class IpHandler
                 return new IPAddress(ipBytes);
             }
 
-            byteModify--;
+            // if there is overflow in the address, make the current byte zero and increment the byte to the left
+            for (int i = byteModify; i >= 0; i--)
+            {
+                if (ipBytes[i] < 255)
+                {
+                    ipBytes[i]++;
+                    break;
+                }
+            }
+            ipBytes[byteModify] = 0;
         }
         return new IPAddress(ipBytes);
     }
