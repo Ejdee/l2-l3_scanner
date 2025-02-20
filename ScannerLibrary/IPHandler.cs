@@ -1,8 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Net;
-using System.Numerics;
-using System.Text;
 
 namespace ScannerLibrary;
 
@@ -50,25 +46,22 @@ public class IpHandler
 
     private static IPAddress NextIpAddress(byte[] ipBytes)
     {
-        int byteModify = (Ipv4Length / 8) - 1;
-        while (byteModify >= 0)
+        // if there is overflow in the address, make the current byte zero and increment the byte to the left
+        for (int i = ipBytes.Length-1; i >= 0; i--)
         {
-            if (ipBytes[byteModify] < 255)
+            if (ipBytes[i] < 255)
             {
-                ipBytes[byteModify]++;
+                ipBytes[i]++;
                 return new IPAddress(ipBytes);
             }
 
-            // if there is overflow in the address, make the current byte zero and increment the byte to the left
-            for (int i = byteModify; i >= 0; i--)
+            ipBytes[i] = 0;
+
+            // overflow in the last byte
+            if (i == 0)
             {
-                if (ipBytes[i] < 255)
-                {
-                    ipBytes[i]++;
-                    break;
-                }
+                throw new ArgumentException("Invalid IP address.");
             }
-            ipBytes[byteModify] = 0;
         }
         return new IPAddress(ipBytes);
     }
