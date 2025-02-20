@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Net;
 using System.Numerics;
 using System.Text;
@@ -22,7 +23,7 @@ public class IpHandler
         // IPv4 has 4 bytes, therefore create a new byte instance of size 4
         byte[] networkBytes = new byte[Ipv4Length/8];
         byte[] broadcastBytes = new byte[Ipv4Length/8];
-
+        
         // get the network and broadcast address for passed IP range
         for (int i = 0; i < Ipv4Length / 8; i++)
         {
@@ -32,6 +33,35 @@ public class IpHandler
         
         Console.WriteLine("Network: " + new IPAddress(networkBytes));
         Console.WriteLine("Broadcast: " + new IPAddress(broadcastBytes));
+        
+        // Increment network address until it is not equal to broadcast. Store each address
+        List<IPAddress> addresses = [];
+        while (!Equals(new IPAddress(broadcastBytes), NextIpAddress(networkBytes)))
+        {
+            addresses.Add(new IPAddress(networkBytes));
+        }
+
+        Console.WriteLine(addresses.Count);
+        foreach (var add in addresses)
+        {
+            Console.WriteLine(add.ToString());
+        }
+    }
+
+    private static IPAddress NextIpAddress(byte[] ipBytes)
+    {
+        int byteModify = (Ipv4Length / 8) - 1;
+        while (byteModify >= 0)
+        {
+            if (ipBytes[byteModify] < 255)
+            {
+                ipBytes[byteModify]++;
+                return new IPAddress(ipBytes);
+            }
+
+            byteModify--;
+        }
+        return new IPAddress(ipBytes);
     }
 
     /// <summary>
@@ -42,10 +72,6 @@ public class IpHandler
         uint prefix = (uint)(~0 << (Ipv4Length - mask)); 
         return new IPAddress(BitConverter.GetBytes(prefix).Reverse().ToArray());
     }
-
-    //private IPAddress MaskToIpv6Format(int mask)
-    //{
-    //}
     
     /// <summary>
     /// Calculate the number of available hosts from IP address.
