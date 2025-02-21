@@ -9,21 +9,14 @@ abstract class Program
     {
         ArgumentParser parser = new ArgumentParser();
         parser.Parse(args);
-        
+
+        //Dictionary<IPAddress, (bool, string, bool)> results;
         IpHandler ipHandler = new IpHandler();
         
-        if (parser.ParsedOptions != null)
-        {
-            Console.WriteLine("Interface - " + parser.ParsedOptions.Interface);
-            Console.WriteLine("Wait - " + parser.ParsedOptions.Wait);
-            Console.WriteLine("Subnets - ");
-            foreach (var subnet in parser.ParsedOptions.Subnets)
-            {
-                Console.WriteLine(subnet + " "); 
-                int hosts = ipHandler.GetNumberOfHosts(subnet);
-                Console.Write($" - {hosts} hosts");
-                Console.WriteLine();
-            }
-        }
+        IcmpV4 ping = new IcmpV4();
+        bool result = ping.IcmpPing(IPAddress.Parse("8.8.8.8"));
+        Console.WriteLine(result ? "ICMP OK" : "ICMP FAIL");
+        
+        parser.PrintResults(parser, ipHandler);
     }
 }
