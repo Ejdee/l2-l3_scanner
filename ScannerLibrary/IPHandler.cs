@@ -8,12 +8,15 @@ public class IpHandler
     private const int ReservedHostsCount = 2;
     private const int Ipv6Length = 128;
 
-    private static void IterateAndPrintHostIp(IPAddress ipAddress, int mask)
+    public List<IPAddress> IterateAndPrintHostIp(string ipAddress)
     {
+
+        (string ip, int mask) = SplitIpAddress(ipAddress);
+        
         IPAddress maskedIp = MaskToIpv4Format(mask);
         Console.WriteLine("prefix IP - " + maskedIp);
         
-        byte[] ipBytes = ipAddress.GetAddressBytes();
+        byte[] ipBytes = IPAddress.Parse(ip).GetAddressBytes();
         byte[] maskedIpBytes = maskedIp.GetAddressBytes();
         
         // IPv4 has 4 bytes, therefore create a new byte instance of size 4
@@ -37,11 +40,7 @@ public class IpHandler
             addresses.Add(new IPAddress(networkBytes));
         }
 
-        Console.WriteLine(addresses.Count);
-        foreach (var add in addresses)
-        {
-            Console.WriteLine(add.ToString());
-        }
+        return addresses;
     }
 
     private static IPAddress NextIpAddress(byte[] ipBytes)
@@ -82,9 +81,7 @@ public class IpHandler
     {
         
         // Split the IP address to IP and the mask
-        string[] splittedAddress = address.Split('/');
-        string ipString = splittedAddress[0];
-        string mask = splittedAddress[1];
+        (string ipString, int mask) = SplitIpAddress(address);
 
         if (IPAddress.TryParse(ipString, out var ipAddress))
         {
@@ -92,10 +89,9 @@ public class IpHandler
             switch (ipAddress.AddressFamily)
             {
                 case System.Net.Sockets.AddressFamily.InterNetwork:
-                    IterateAndPrintHostIp(ipAddress, int.Parse(mask));
-                    return (int)(Math.Pow(2, Ipv4Length - int.Parse(mask))) - ReservedHostsCount;
+                    return (int)(Math.Pow(2, Ipv4Length - mask)) - ReservedHostsCount;
                 case System.Net.Sockets.AddressFamily.InterNetworkV6:
-                    return (int)(Math.Pow(2, Ipv6Length - int.Parse(mask)));
+                    return (int)(Math.Pow(2, Ipv6Length - mask));
                 default:
                     Console.WriteLine("Not a valid IP address");
                     throw new ArgumentOutOfRangeException();
@@ -104,4 +100,17 @@ public class IpHandler
 
         return -1;
     }
+
+    /// <summary>
+    /// Split the IP address to IP address and mask.
+    /// </summary>
+    private static (string, int)  SplitIpAddress(string address)
+    {
+        string[] splitAddress = address.Split('/');
+        string ipString = splitAddress[0];
+        string mask = splitAddress[1];
+
+        return (ipString, int.Parse(mask));
+    } 
+    
 }
