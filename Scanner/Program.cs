@@ -13,7 +13,7 @@ abstract class Program
     {
         Logger logger = new Logger();
         LibPcapLiveDeviceList deviceList = LibPcapLiveDeviceList.Instance;
-        logger.ListActiveInterfaces(deviceList);
+        IPAddress source = logger.ListActiveInterfaces(deviceList);
 
         ArgumentParser parser = new ArgumentParser();
         parser.Parse(args);
@@ -23,15 +23,29 @@ abstract class Program
 
         List<IPAddress> hosts = new List<IPAddress>();
         Debug.Assert(parser.ParsedOptions != null, "parser.ParsedOptions != null");
+        
+        // Iterate through the subnets specified in the program arguments
         foreach (string address in parser.ParsedOptions.Subnets)
         {
             hosts.AddRange(ipHandler.IterateAndPrintHostIp(address));
         }
+
+        var ipStatus = new Dictionary<IPAddress, IpAddressInfo>();
+        foreach (IPAddress host in hosts)
+        {
+            ipStatus[host] = new IpAddressInfo { ArpSuccess = false, MacAddress = "", IcmpReply = false };
+        }
+
+        using var device = deviceList.First();
+        IcmpV4 icmpInst = new IcmpV4(device);
+        Console.WriteLine("Sending from interface: " + device.Name);
         
-        IcmpV4 ping = new IcmpV4();
-        bool result = ping.IcmpPing(IPAddress.Parse("8.8.8.8"));
-        Console.WriteLine(result ? "ICMP OK" : "ICMP FAIL");
+        icmpInst.IcmpProcess(source, ipStatus);
         
         logger.PrintParsedResults(parser, ipHandler);
+        Console.WriteLine();
+        Console.WriteLine("****************************************");
+        logger.PrintResult(ipStatus);
+        Console.WriteLine("****************************************");
     }
 }

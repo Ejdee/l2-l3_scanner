@@ -77,7 +77,7 @@ public class IpHandler
     /// <summary>
     /// Calculate the number of available hosts from IP address.
     /// </summary>
-    public int GetNumberOfHosts(string address)
+    public static int GetNumberOfHosts(string address)
     {
         
         // Split the IP address to IP and the mask
