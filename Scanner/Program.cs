@@ -37,10 +37,12 @@ abstract class Program
         }
 
         using var device = deviceList.First();
-        IcmpV4 icmpInst = new IcmpV4(device);
+        IcmpV4 icmpInst = new IcmpV4();
+        Arp arpInst = new Arp();
         Console.WriteLine("Sending from interface: " + device.Name);
-        
-        icmpInst.IcmpProcess(source, ipStatus);
+
+        NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device); 
+        scanner.ScanNetwork(source, ipStatus);
         
         logger.PrintParsedResults(parser, ipHandler);
         Console.WriteLine();
