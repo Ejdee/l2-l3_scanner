@@ -7,9 +7,9 @@ using SharpPcap.LibPcap;
 
 namespace Scanner;
 
-abstract class Program
+internal abstract class Program
 {
-    public static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         Logger logger = new Logger();
         LibPcapLiveDeviceList deviceList = LibPcapLiveDeviceList.Instance;
@@ -41,8 +41,8 @@ abstract class Program
         Arp arpInst = new Arp();
         Console.WriteLine("Sending from interface: " + device.Name);
 
-        NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device); 
-        scanner.ScanNetwork(source, ipStatus);
+        //NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device); 
+        //await scanner.ScanNetwork(source, ipStatus);
         
         logger.PrintParsedResults(parser, ipHandler);
         Console.WriteLine();

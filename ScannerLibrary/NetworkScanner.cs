@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection.Metadata;
 using PacketDotNet;
 using SharpPcap;
 using SharpPcap.LibPcap;
@@ -11,23 +12,35 @@ public class NetworkScanner
     private readonly Arp _arp;
     private readonly LibPcapLiveDevice _device;
 
-
     public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device)
     {
         _icmp = icmp;
         _arp = arp;
         _device = device;
     }
-
-    private void SendPackets(Dictionary<IPAddress, IpAddressInfo> destinations, IPAddress source)
-    {
-        foreach (var destination in destinations.Keys)
-        {
-            _icmp.SendIcmpPacket(source, destination, _device);
-            _arp.SendArpRequest(destination, source, _device);
-        }
-    }
     
+    /// <summary>
+    /// Set up new thread for sniffing for replies and send the requests.
+    /// </summary>
+    public async Task ScanNetwork(IPAddress source, Dictionary<IPAddress, IpAddressInfo> destinations)
+    {
+        _device.Open(DeviceModes.Promiscuous);
+
+        var listenerTask = Task.Run(() => PacketListener(destinations)); 
+        
+        SendArpRequests(destinations, source);
+        
+        await Task.Delay(5000);
+        
+        SendIcmpRequests(destinations, source);
+        
+        await Task.Delay(5000);
+
+        _device.StopCapture();
+        _device.Close();
+        await listenerTask;
+    }
+
     /// <summary>
     /// Unpack packet on arrival and check if it is ICMP reply.
     /// </summary>
@@ -61,27 +74,23 @@ public class NetworkScanner
         _device.StartCapture();
     }
     
-    /// <summary>
-    /// Set up new thread for sniffing for replies and send the requests.
-    /// </summary>
-    public void ScanNetwork(IPAddress source, Dictionary<IPAddress, IpAddressInfo> destinations)
+    private void SendArpRequests(Dictionary<IPAddress, IpAddressInfo> destinations, IPAddress source)
     {
-        _device.Open(DeviceModes.Promiscuous);
-        
-        var thread = new Thread(() => PacketListener(destinations));
-        thread.Start();
-        
-        Thread.Sleep(1000);
+        foreach (var destination in destinations.Keys)
+        {
+            _arp.SendArpRequest(destination, source, _device);
+        }
+    }
 
-        // send packets
-        SendPackets(destinations, source);
-        
-        Thread.Sleep(5000);
-
-        _device.StopCapture();
-        
-        thread.Join(); 
-        
-        _device.Close();
+    private void SendIcmpRequests(Dictionary<IPAddress, IpAddressInfo> destinations, IPAddress source)
+    {
+        foreach (var destination in destinations)
+        {
+            if (destination.Value.MacAddress == "")
+            {
+                continue;
+            }
+            _icmp.SendIcmpPacket(source, destination.Key, _device, destination.Value.MacAddress);
+        }
     }
 }

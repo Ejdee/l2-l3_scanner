@@ -9,12 +9,10 @@ namespace ScannerLibrary;
 
 public class IcmpV4()
 {
-    private const string GatewayAddress = "bc:0f:9a:5b:14:7c";
-
     /// <summary>
     /// Construct icmp packet. Wrap it the IP packet and then ethernet frame before sending it.
     /// </summary>
-    public void SendIcmpPacket(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
+    public void SendIcmpPacket(IPAddress source, IPAddress destination, LibPcapLiveDevice device, string hardwareAddress)
     {
         // ICMP header is 8 bytes + 32 bytes payload
         var icmpPacket = new IcmpV4Packet(new ByteArraySegment(new byte[8 + 32]));
@@ -30,13 +28,13 @@ public class IcmpV4()
 
         // Construct ethernet packet
         var ethernetPacket =
-            new EthernetPacket(device.MacAddress, PhysicalAddress.Parse(GatewayAddress), EthernetType.IPv4)
+            new EthernetPacket(device.MacAddress, PhysicalAddress.Parse(hardwareAddress), EthernetType.IPv4)
             {
                 PayloadPacket = ipPacket,
             };
         ethernetPacket.UpdateCalculatedValues();
         
         device.SendPacket(ethernetPacket);
-        //Console.WriteLine("ICMP packet sent from " + source + " to " + destination);
+        Console.WriteLine("ICMP packet sent from " + source + " to " + destination);
     } 
 }
