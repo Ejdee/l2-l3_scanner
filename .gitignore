@@ -16,3 +16,5 @@ obj/
 packages/
 *.nupkg
 project.lock.json
+
+my_notes.txt
