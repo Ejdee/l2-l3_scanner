@@ -90,7 +90,7 @@ public class NetworkScanner
             {
                 continue;
             }
-            _icmp.SendIcmpPacket(source, destination.Key, _device, destination.Value.MacAddress);
+            _icmp.SendIcmpPacket(source, destination.Key);
         }
     }
 }

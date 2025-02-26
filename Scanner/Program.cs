@@ -41,8 +41,8 @@ internal abstract class Program
         Arp arpInst = new Arp();
         Console.WriteLine("Sending from interface: " + device.Name);
 
-        //NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device); 
-        //await scanner.ScanNetwork(source, ipStatus);
+        NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device); 
+        await scanner.ScanNetwork(source, ipStatus);
         
         logger.PrintParsedResults(parser, ipHandler);
         Console.WriteLine();
