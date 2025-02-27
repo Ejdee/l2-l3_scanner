@@ -1,10 +1,5 @@
 using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
-using PacketDotNet;
-using SharpPcap;
 using SharpPcap.LibPcap;
-using ProtocolType = System.Net.Sockets.ProtocolType;
 
 namespace ScannerLibrary;
 

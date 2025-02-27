@@ -1,12 +1,5 @@
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
-using PacketDotNet;
-using PacketDotNet.Utils;
-using SharpPcap;
-using SharpPcap.LibPcap;
-using ProtocolType = System.Net.Sockets.ProtocolType;
 
 namespace ScannerLibrary;
 
@@ -15,7 +8,7 @@ public class IcmpV4()
     /// <summary>
     /// Construct icmp packet and send it.
     /// </summary>
-    public void SendIcmpPacket(IPAddress source, IPAddress destination)
+    public void SendIcmpv4Packet(IPAddress source, IPAddress destination)
     {
         // create the IPv4 raw socket of protocol ICMP
         using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.Icmp);
@@ -45,7 +38,7 @@ public class IcmpV4()
         header[6] = 0x00; // sequence number (BE)
         header[7] = 0x01; // sequence number (LE)
         
-        byte[] payload = "IPK project ICMP."u8.ToArray();
+        byte[] payload = "IPK project ICMPv4."u8.ToArray();
         Array.Copy(payload, 0, header, 8, payload.Length);
 
         // Checksum by ChatGPT
