@@ -1,4 +1,7 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Numerics;
+using System.Text;
 
 namespace ScannerLibrary;
 
@@ -10,11 +13,26 @@ public class IpHandler
 
     public List<IPAddress> IterateAndPrintHostIp(string ipAddress)
     {
-
-        (string ip, int mask) = SplitIpAddress(ipAddress);
+        (string ip, int mask) = SplitIpAddress(ipAddress); 
         
+        if (IPAddress.TryParse(ip, out var ipAddressParsed))
+        {
+            switch (ipAddressParsed.AddressFamily)
+            {
+                case AddressFamily.InterNetwork:
+                    return AvailableIpv4Addresses(ip, mask);
+                case AddressFamily.InterNetworkV6:
+                    return AvailableIpv6Addresses(ip, mask);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        throw new ArgumentOutOfRangeException();
+    }
+
+    private static List<IPAddress> AvailableIpv4Addresses(string ip, int mask)
+    {
         IPAddress maskedIp = MaskToIpv4Format(mask);
-        Console.WriteLine("prefix IP - " + maskedIp);
         
         byte[] ipBytes = IPAddress.Parse(ip).GetAddressBytes();
         byte[] maskedIpBytes = maskedIp.GetAddressBytes();
@@ -30,9 +48,6 @@ public class IpHandler
             broadcastBytes[i] = (byte)(ipBytes[i] | ~maskedIpBytes[i]);
         }
         
-        Console.WriteLine("Network: " + new IPAddress(networkBytes));
-        Console.WriteLine("Broadcast: " + new IPAddress(broadcastBytes));
-        
         // Increment network address until it is not equal to broadcast. Store each address
         List<IPAddress> addresses = [];
         while (!Equals(new IPAddress(broadcastBytes), NextIpAddress(networkBytes)))
@@ -41,6 +56,38 @@ public class IpHandler
         }
 
         return addresses;
+    }
+
+    private static List<IPAddress> AvailableIpv6Addresses(string ip, int mask)
+    {
+        IPAddress maskedIp = MaskToIpv6Format(mask);
+        
+        byte[] ipBytes = IPAddress.Parse(ip).GetAddressBytes();
+        byte[] maskedIpBytes = maskedIp.GetAddressBytes();
+        
+        byte[] firstAddress = new byte[Ipv6Length/8];
+        byte[] lastAddress = new byte[Ipv6Length/8];
+        for (int i = 0; i < Ipv6Length / 8; i++)
+        {
+            firstAddress[i] = (byte)(ipBytes[i] & maskedIpBytes[i]);
+            lastAddress[i] = (byte)(ipBytes[i] | ~maskedIpBytes[i]);
+        } 
+        
+        List<IPAddress> addresses = [new IPAddress(firstAddress)];
+        while (!Equals(new IPAddress(lastAddress), NextIpAddress(firstAddress)))
+        {
+            addresses.Add(new IPAddress(firstAddress));
+        }
+        addresses.Add(new IPAddress(lastAddress));
+        
+        return addresses;
+    }
+
+    private static IPAddress MaskToIpv6Format(int mask)
+    {
+        // IPv6 is 128 bits long, so we need to use appropriate data type
+        var prefix = (Int128)(~0 << (Ipv6Length - mask)); 
+        return new IPAddress(BitConverter.GetBytes(prefix).Reverse().ToArray());
     }
 
     private static IPAddress NextIpAddress(byte[] ipBytes)

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection.Metadata;
 using PacketDotNet;
 using SharpPcap;
@@ -9,14 +10,16 @@ namespace ScannerLibrary;
 public class NetworkScanner
 {
     private readonly IcmpV4 _icmp;
+    private readonly IcmpV6 _icmp6;
     private readonly Arp _arp;
     private readonly LibPcapLiveDevice _device;
 
-    public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device)
+    public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device, IcmpV6 icmp6)
     {
         _icmp = icmp;
         _arp = arp;
         _device = device;
+        _icmp6 = icmp6;
     }
     
     /// <summary>
@@ -49,22 +52,49 @@ public class NetworkScanner
         _device.OnPacketArrival += (sender, e) =>
         {
             var rawPacket = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
+            
+            // handle packet for ICMPv4
             var ipPacket = rawPacket.Extract<IPPacket>();
             var icmpPacket = rawPacket.Extract<IcmpV4Packet>();
-
+            
             if (icmpPacket != null && icmpPacket.TypeCode == IcmpV4TypeCode.EchoReply)
             {
-                dict[ipPacket.SourceAddress].IcmpReply = true;
-                Console.WriteLine("Received icmp packet from: " + ipPacket.SourceAddress);
+                if (dict.ContainsKey(ipPacket.SourceAddress))
+                {
+                    dict[ipPacket.SourceAddress].IcmpReply = true;
+                    Console.WriteLine("Received icmp packet from: " + ipPacket.SourceAddress);
+                }
             }
             
+            // handle packet for ICMPv6
+            var ipv6Packet = rawPacket.Extract<IPv6Packet>();
+            var icmpv6Packet = rawPacket.Extract<IcmpV6Packet>();
+
+            if (ipv6Packet != null && icmpv6Packet != null && icmpv6Packet.Type == IcmpV6Type.EchoReply)
+            {
+
+                if (dict.ContainsKey(ipv6Packet.SourceAddress))
+                {
+                    dict[ipv6Packet.SourceAddress].IcmpReply = true;
+                    Console.WriteLine("Received icmp packet from: " + ipv6Packet.SourceAddress);
+                }
+                else
+                {
+                    Console.WriteLine("Received icmp reply from unknown address.");
+                }
+            }
+            
+            // handle packet for ARP
             var arpPacket = rawPacket.Extract<ArpPacket>();
             if (arpPacket != null && arpPacket.Operation == ArpOperation.Response)
             {
                 var senderIp = arpPacket.SenderProtocolAddress;
-                dict[senderIp].ArpSuccess = true;
-                dict[senderIp].MacAddress = arpPacket.SenderHardwareAddress.ToString();
-                Console.WriteLine("Received arp packet from: " + senderIp);
+                if (dict.ContainsKey(senderIp))
+                {
+                    dict[senderIp].ArpSuccess = true;
+                    dict[senderIp].MacAddress = arpPacket.SenderHardwareAddress.ToString();
+                    Console.WriteLine("Received arp packet from: " + senderIp);
+                }
             }
         };
         
@@ -78,7 +108,16 @@ public class NetworkScanner
     {
         foreach (var destination in destinations.Keys)
         {
-            _arp.SendArpRequest(destination, source, _device);
+            switch (destination.AddressFamily)
+            {
+                case AddressFamily.InterNetwork:
+                    _arp.SendArpRequest(destination, source, _device);
+                    break;
+                case AddressFamily.InterNetworkV6:
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 
@@ -86,11 +125,15 @@ public class NetworkScanner
     {
         foreach (var destination in destinations)
         {
-            if (destination.Value.MacAddress == "")
+            switch (destination.Key.AddressFamily)
             {
-                continue;
+                case AddressFamily.InterNetwork:
+                    _icmp.SendIcmpv4Packet(source, destination.Key);
+                    break;
+                case AddressFamily.InterNetworkV6:
+                    //_icmp6.SendIcmpv6Packet(source, destination.Key);
+                    break;
             }
-            _icmp.SendIcmpPacket(source, destination.Key);
         }
     }
 }

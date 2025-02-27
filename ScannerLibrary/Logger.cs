@@ -50,7 +50,7 @@ public class Logger
     {
         foreach (KeyValuePair<IPAddress, IpAddressInfo> result in results)
         {
-            Console.WriteLine("{0}: icmp: {1}  -  mac: {2}  -  arp: {3}", result.Key, result.Value.IcmpReply,
+            Console.WriteLine("{0} - icmp: {1}  -  mac: {2}  -  arp: {3}", result.Key, result.Value.IcmpReply,
                 result.Value.MacAddress, result.Value.ArpSuccess);
         }
     }
