@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection.Metadata;
@@ -12,7 +13,8 @@ public class NetworkScanner
     private readonly IcmpV4 _icmp;
     private readonly IcmpV6 _icmp6;
     private readonly Arp _arp;
-    private readonly LibPcapLiveDevice _device;
+    private readonly LibPcapLiveDevice _device; 
+    private const int OffsetIpv6 = 54;
 
     public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device, IcmpV6 icmp6)
     {
@@ -29,6 +31,9 @@ public class NetworkScanner
     {
         _device.Open(DeviceModes.Promiscuous);
 
+        // set filter to only capture icmp, icmpv6 (ndp) and arp packets
+        //_device.Filter = "icmp or arp or (ip6 and ip6[6] == 58)";
+        
         var listenerTask = Task.Run(() => PacketListener(destinations)); 
         
         SendArpRequests(destinations, source);
@@ -45,59 +50,77 @@ public class NetworkScanner
     }
 
     /// <summary>
-    /// Unpack packet on arrival and check if it is ICMP reply.
+    /// Get packet on arrival and check if it is some desired reply
     /// </summary>
     private void PacketListener(Dictionary<IPAddress, IpAddressInfo> dict)
     {
         _device.OnPacketArrival += (sender, e) =>
         {
-            var rawPacket = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
-            
-            // handle packet for ICMPv4
-            var ipPacket = rawPacket.Extract<IPPacket>();
-            var icmpPacket = rawPacket.Extract<IcmpV4Packet>();
-            
-            if (icmpPacket != null && icmpPacket.TypeCode == IcmpV4TypeCode.EchoReply)
+            byte[] rawEthPacket = e.GetPacket().Data;
+
+            byte[] ethType = new byte[2] { rawEthPacket[12], rawEthPacket[13] };
+
+            if (ethType[0] == 0x08 && ethType[1] == 0x00)
             {
-                if (dict.ContainsKey(ipPacket.SourceAddress))
+                // IPV4 parsing - only ICMP in this case
+                byte[] ipAddr = new byte[4];
+
+                int headerSizeIpv4 = (rawEthPacket[14] & 0x0F) * 4;
+                int offsetIpv4 = headerSizeIpv4 + 14;
+
+                // ICMP protocol with type code 0 (reply)
+                if (rawEthPacket[23] == 0x01 && rawEthPacket[offsetIpv4] == 0x00)
                 {
-                    dict[ipPacket.SourceAddress].IcmpReply = true;
-                    Console.WriteLine("Received icmp packet from: " + ipPacket.SourceAddress);
+                    // copy the IP address that packet was sent from
+                    Buffer.BlockCopy(rawEthPacket, 26, ipAddr, 0, 4);
+                    Console.WriteLine("Received ICMP from " + new IPAddress(ipAddr));
                 }
             }
-            
-            // handle packet for ICMPv6
-            var ipv6Packet = rawPacket.Extract<IPv6Packet>();
-            var icmpv6Packet = rawPacket.Extract<IcmpV6Packet>();
-
-            if (ipv6Packet != null && icmpv6Packet != null && icmpv6Packet.Type == IcmpV6Type.EchoReply)
+            else if (ethType[0] == 0x86 && ethType[1] == 0xdd)
             {
+                // IPV6 PARSING
+                // ICMPv6 as next header
+                if (rawEthPacket[20] == 0x3a)
+                {
+                    byte[] ipAddr = new byte[16];
+                    // If we caught neighbour advertisement type code, and it is non-solicited (contains MAC address)
+                    if (rawEthPacket[OffsetIpv6] == 0x88 && rawEthPacket[OffsetIpv6 + 4] == 0x60)
+                    {
+                        Buffer.BlockCopy(rawEthPacket, OffsetIpv6 + 8, ipAddr, 0, 16);
+                        Console.WriteLine("IP TARGET " + BitConverter.ToString(ipAddr));
 
-                if (dict.ContainsKey(ipv6Packet.SourceAddress))
-                {
-                    dict[ipv6Packet.SourceAddress].IcmpReply = true;
-                    Console.WriteLine("Received icmp packet from: " + ipv6Packet.SourceAddress);
-                }
-                else
-                {
-                    Console.WriteLine("Received icmp reply from unknown address.");
+                        byte[] macAddress = new byte[6];
+                        Buffer.BlockCopy(rawEthPacket, OffsetIpv6 + 26, macAddress, 0, 6);
+                        Console.WriteLine("MAC " + BitConverter.ToString(macAddress));
+                    }
+
+                    // ICMPv6 echo reply code
+                    if (rawEthPacket[OffsetIpv6] == 0x81)
+                    {
+                        Buffer.BlockCopy(rawEthPacket, 22, ipAddr, 0, 16);
+                        Console.WriteLine("ICMP - IP TARGET " + BitConverter.ToString(ipAddr));
+                    }
                 }
             }
-            
-            // handle packet for ARP
-            var arpPacket = rawPacket.Extract<ArpPacket>();
-            if (arpPacket != null && arpPacket.Operation == ArpOperation.Response)
+            else if (ethType[0] == 0x08 && ethType[1] == 0x06)
             {
-                var senderIp = arpPacket.SenderProtocolAddress;
-                if (dict.ContainsKey(senderIp))
+                // ARP parsing
+                
+                // if the opcode is reply
+                if (rawEthPacket[20] == 0x00 && rawEthPacket[21] == 0x02)
                 {
-                    dict[senderIp].ArpSuccess = true;
-                    dict[senderIp].MacAddress = arpPacket.SenderHardwareAddress.ToString();
-                    Console.WriteLine("Received arp packet from: " + senderIp);
+                    byte[] ipAddr = new byte[4];
+                    byte[] macAddress = new byte[6];
+
+                    Buffer.BlockCopy(rawEthPacket, 28, ipAddr, 0, 4);
+                    Buffer.BlockCopy(rawEthPacket, 22, macAddress, 0, 6);
+
+                    Console.WriteLine("ARP Reply from " + new IPAddress(ipAddr) + " MAC " +
+                                      BitConverter.ToString(macAddress));
                 }
             }
         };
-        
+
         Console.WriteLine();
         Console.WriteLine("-- Listening for replies...");
         
