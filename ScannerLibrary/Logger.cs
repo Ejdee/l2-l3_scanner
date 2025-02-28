@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using SharpPcap.LibPcap;
 
@@ -5,28 +6,36 @@ namespace ScannerLibrary;
 
 public class Logger
 {
-    public IPAddress ListActiveInterfaces(LibPcapLiveDeviceList deviceList)
+    public List<IPAddress> GetSourceAddresses(LibPcapLiveDeviceList deviceList, string interfaceName)
     {
-        Console.WriteLine("Available interfaces:");
+        List<IPAddress> sourcesIp = new List<IPAddress>();
         foreach (LibPcapLiveDevice liveDevice in deviceList)
         {
-            if (liveDevice.Addresses.Count > 0)
+            if (liveDevice.Addresses.Count <= 0)
             {
-                Console.WriteLine("\t" + liveDevice.Name);
+                continue;
             }
-            
-            foreach (PcapAddress addr in liveDevice.Addresses)
+
+            if (liveDevice.Name == interfaceName)
             {
-                if (addr.Addr != null && 
-                    addr.Addr.ipAddress != null && 
-                    addr.Addr.ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                foreach (PcapAddress addr in liveDevice.Addresses)
                 {
-                    Console.WriteLine("\tIPv4 Address: " + addr.Addr.ipAddress);
-                    return addr.Addr.ipAddress;
+                    if (addr.Addr != null && 
+                        addr.Addr.ipAddress != null && 
+                        addr.Addr.ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        sourcesIp.Add(addr.Addr.ipAddress);
+                    } else if (addr.Addr is { ipAddress.AddressFamily: System.Net.Sockets.AddressFamily.InterNetworkV6 })
+                    {
+                        if(addr.Addr.ipAddress.ToString().StartsWith("fe80")) sourcesIp.Add(addr.Addr.ipAddress);
+                    }
                 }
+
+                break;
             }
         }
-        return null;
+
+        return sourcesIp;
     }
     
     public void PrintParsedResults(ArgumentParser parser, IpHandler ipHandler)
@@ -46,12 +55,49 @@ public class Logger
         }
     }
 
-    public void PrintResult(Dictionary<IPAddress, IpAddressInfo> results)
+    public void PrintResult(ConcurrentDictionary<IPAddress, IpAddressInfo> results, List<IPAddress> sortedIps)
     {
-        foreach (KeyValuePair<IPAddress, IpAddressInfo> result in results)
+        foreach (var ip in sortedIps)
         {
-            Console.WriteLine("{0} - icmp: {1}  -  mac: {2}  -  arp: {3}", result.Key, result.Value.IcmpReply,
-                result.Value.MacAddress, result.Value.ArpSuccess);
+            if (results[ip].IcmpReply)
+            {
+                Console.WriteLine("\u001b[38;5;46m{0} \t - ICMP: {1} \t ARP: {2} \t MAC: {3}\u001b[0m", ip, results[ip].IcmpReply, results[ip].ArpSuccess, results[ip].MacAddress);
+            } else if (!results[ip].IcmpReply && !results[ip].ArpSuccess)
+            {
+                Console.WriteLine("\u001b[38;5;196m{0} \t - ICMP: {1} \t ARP: {2} \t MAC: {3}\u001b[0m", ip, results[ip].IcmpReply, results[ip].ArpSuccess, results[ip].MacAddress);
+            } else if (!results[ip].IcmpReply && results[ip].ArpSuccess)
+            {
+                Console.WriteLine("\u001b[38;5;226m{0} \t - ICMP: {1} \t ARP: {2} \t MAC: {3}\u001b[0m", ip, results[ip].IcmpReply, results[ip].ArpSuccess, results[ip].MacAddress);
+            }
+        }
+    }
+
+    public static void PrintAvailableInterfaces(LibPcapLiveDeviceList deviceList)
+    {
+        Console.WriteLine("Available Interfaces"); 
+        foreach (LibPcapLiveDevice liveDevice in deviceList)
+        {
+            if (liveDevice.Addresses.Count <= 0)
+            {
+                continue;
+            }
+            
+            Console.WriteLine("\t Name: " + liveDevice.Name);
+            
+            foreach (PcapAddress addr in liveDevice.Addresses)
+            {
+                if (addr.Addr != null && 
+                    addr.Addr.ipAddress != null && 
+                    addr.Addr.ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    Console.WriteLine("\t \t IPv4 : " + addr.Addr.ipAddress);
+                } else if (addr.Addr is { ipAddress.AddressFamily: System.Net.Sockets.AddressFamily.InterNetworkV6 })
+                {
+                    Console.WriteLine("\t \t IPv6 : " + addr.Addr.ipAddress);
+                }
+            }
+
+            break;
         }
     }
 }

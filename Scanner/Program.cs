@@ -1,10 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
-using System.Net.NetworkInformation;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using ScannerLibrary;
-using SharpPcap;
 using SharpPcap.LibPcap;
 
 namespace Scanner;
@@ -13,32 +10,30 @@ internal abstract class Program
 {
     private static async Task Main(string[] args)
     {
-        foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            Console.WriteLine($"Interface: {networkInterface.Name}");
-            
-            foreach (UnicastIPAddressInformation ipAddressInfo in networkInterface.GetIPProperties().UnicastAddresses)
-            {
-                if (ipAddressInfo.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-                {
-                    Console.WriteLine($"  IPv6 Address: {ipAddressInfo.Address}");
-                } else if (ipAddressInfo.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
-                    Console.WriteLine($"  IPv4 Address: {ipAddressInfo.Address}");
-                }
-            }
-        }
-        
-        
-        
         Logger logger = new Logger();
         LibPcapLiveDeviceList deviceList = LibPcapLiveDeviceList.Instance;
-        IPAddress source = logger.ListActiveInterfaces(deviceList);
-
+        
         ArgumentParser parser = new ArgumentParser();
         parser.Parse(args);
 
-        //Dictionary<IPAddress, (bool, string, bool)> results;
+        
+        if (string.IsNullOrEmpty(parser.ParsedOptions.Interface))
+        {
+            Logger.PrintAvailableInterfaces(deviceList);
+            return;
+        }
+        
+        string interfaceName = parser.ParsedOptions.Interface;
+        
+        int waitTimeout = parser.ParsedOptions.Wait;
+        
+        var sourceIps = logger.GetSourceAddresses(deviceList, interfaceName);
+
+        foreach (var sourceIp in sourceIps)
+        {
+            Console.WriteLine("INTERFACE : " + interfaceName + "  -   source : " + sourceIp);
+        }
+
         IpHandler ipHandler = new IpHandler();
 
         List<IPAddress> hosts = new List<IPAddress>();
@@ -50,35 +45,33 @@ internal abstract class Program
             hosts.AddRange(ipHandler.IterateAndPrintHostIp(address));
         }
 
-        var ipStatus = new Dictionary<IPAddress, IpAddressInfo>();
+        var ipStatus = new ConcurrentDictionary<IPAddress, IpAddressInfo>();
         foreach (IPAddress host in hosts)
         {
             ipStatus[host] = new IpAddressInfo { ArpSuccess = false, MacAddress = "", IcmpReply = false };
         }
 
-        using var device = deviceList.First();
+        var device = deviceList.FirstOrDefault(dev => dev.Name == interfaceName);
+        if (device == null)
+        {
+            Console.WriteLine("No interface found with interface name " + interfaceName);
+            return;
+        }
+        
         IcmpV4 icmpInst = new IcmpV4();
         Arp arpInst = new Arp();
         Console.WriteLine("Sending from interface: " + device.Name);
 
         var icmpv6Inst = new IcmpV6();
-        IPAddress sourceIp = IPAddress.Parse("fe80::d38e:f7ee:3f82:8a90%wlp2s0");
-        IPAddress destIp = IPAddress.Parse("2a02:8308:a18b:3500::a199");
-        icmpv6Inst.SendIcmpv6Packet(sourceIp, destIp);
-
         var ndpInst = new Ndp();
-        device.Open();
-        ndpInst.SendNdpRequest(sourceIp, destIp, device);
-        device.Close();
         
         
-        //NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device, icmpv6Inst); 
-        //await scanner.ScanNetwork(source, ipStatus);
+        NetworkScanner scanner = new NetworkScanner(icmpInst, arpInst, device, icmpv6Inst, ndpInst); 
+        await scanner.ScanNetwork(sourceIps[0], sourceIps[1], ipStatus, waitTimeout);
         
-        logger.PrintParsedResults(parser, ipHandler);
         Console.WriteLine();
         Console.WriteLine("****************************************");
-        logger.PrintResult(ipStatus);
+        logger.PrintResult(ipStatus, hosts);
         Console.WriteLine("****************************************");
     }
 }
