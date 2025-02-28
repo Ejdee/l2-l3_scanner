@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Numerics;
-using System.Text;
 
 namespace ScannerLibrary;
 
@@ -135,9 +133,9 @@ public class IpHandler
             // Calculate the number of available hosts based on the type of the IP address
             switch (ipAddress.AddressFamily)
             {
-                case System.Net.Sockets.AddressFamily.InterNetwork:
+                case AddressFamily.InterNetwork:
                     return (int)(Math.Pow(2, Ipv4Length - mask)) - ReservedHostsCount;
-                case System.Net.Sockets.AddressFamily.InterNetworkV6:
+                case AddressFamily.InterNetworkV6:
                     return (int)(Math.Pow(2, Ipv6Length - mask));
                 default:
                     Console.WriteLine("Not a valid IP address");

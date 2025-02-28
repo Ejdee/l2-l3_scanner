@@ -13,6 +13,7 @@ public class Arp
         byte[] arpHeader = CreateArpHeader(source, destination, device);
 
         //TODO: search internet for possibility of sending raw ethernet frames in c#
+        Console.WriteLine("Sent arp request to " + destination + " from " + source + ".");
         device.SendPacket(arpHeader);
     }
 
@@ -50,7 +51,8 @@ public class Arp
         Array.Copy(source.GetAddressBytes(), 0, arpHeader, 14, source.GetAddressBytes().Length);
 
         // target MAC address (doesn't matter, we set it to all F's)
-        Array.Copy(broadcast, 0, arpHeader, 18, broadcast.Length);
+        byte[] targetMac = new byte[6] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        Array.Copy(targetMac, 0, arpHeader, 18, broadcast.Length);
         
         // target IP address
         Array.Copy(destination.GetAddressBytes(), 0, arpHeader, 24, destination.GetAddressBytes().Length);

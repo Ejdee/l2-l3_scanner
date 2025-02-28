@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace ScannerLibrary;
 
-public class IcmpV4()
+public class IcmpV4
 {
     /// <summary>
     /// Construct icmp packet and send it.
@@ -17,8 +17,7 @@ public class IcmpV4()
         byte[] data = CreateIcmpHeader();
 
         socket.SendTo(data, new IPEndPoint(destination, 0));
-            
-        Console.WriteLine("ICMP packet sent from " + source + " to " + destination);
+        Console.WriteLine("ICMP request sent to " + destination + " from " + source);
     }
     
     /// <summary>

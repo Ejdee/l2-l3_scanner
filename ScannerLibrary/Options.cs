@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
-using CommandLine;
+﻿using CommandLine;
 
 namespace ScannerLibrary
 {
@@ -12,7 +10,7 @@ namespace ScannerLibrary
         [Option('i', "interface", Required = false, HelpText = "Interface to scan through")]
         public string Interface { get; set; } = string.Empty;
         
-        [Option('w', "wait", Required = false, HelpText = "timeout in milliseconds to wait for a \"" +
+        [Option('w', "wait", Required = false, Default = 5000, HelpText = "timeout in milliseconds to wait for a \"" +
                                                           "response for a single port scan.")]
         public int Wait { get; set; }
 

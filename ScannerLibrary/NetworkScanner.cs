@@ -1,8 +1,6 @@
-using System.Linq.Expressions;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata;
-using PacketDotNet;
 using SharpPcap;
 using SharpPcap.LibPcap;
 
@@ -13,21 +11,23 @@ public class NetworkScanner
     private readonly IcmpV4 _icmp;
     private readonly IcmpV6 _icmp6;
     private readonly Arp _arp;
+    private readonly Ndp _ndp;
     private readonly LibPcapLiveDevice _device; 
     private const int OffsetIpv6 = 54;
 
-    public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device, IcmpV6 icmp6)
+    public NetworkScanner(IcmpV4 icmp, Arp arp, LibPcapLiveDevice device, IcmpV6 icmp6, Ndp ndp)
     {
         _icmp = icmp;
         _arp = arp;
         _device = device;
         _icmp6 = icmp6;
+        _ndp = ndp;
     }
     
     /// <summary>
     /// Set up new thread for sniffing for replies and send the requests.
     /// </summary>
-    public async Task ScanNetwork(IPAddress source, Dictionary<IPAddress, IpAddressInfo> destinations)
+    public async Task ScanNetwork(IPAddress ipv4Source, IPAddress ipv6Source, ConcurrentDictionary<IPAddress, IpAddressInfo> destinations, int timeout)
     {
         _device.Open(DeviceModes.Promiscuous);
 
@@ -36,13 +36,13 @@ public class NetworkScanner
         
         var listenerTask = Task.Run(() => PacketListener(destinations)); 
         
-        SendArpRequests(destinations, source);
+        SendArpRequests(destinations, ipv4Source, ipv6Source);
         
-        await Task.Delay(5000);
+        await Task.Delay(timeout);
         
-        SendIcmpRequests(destinations, source);
+        SendIcmpRequests(destinations, ipv4Source, ipv6Source);
         
-        await Task.Delay(5000);
+        await Task.Delay(timeout);
 
         _device.StopCapture();
         _device.Close();
@@ -52,13 +52,13 @@ public class NetworkScanner
     /// <summary>
     /// Get packet on arrival and check if it is some desired reply
     /// </summary>
-    private void PacketListener(Dictionary<IPAddress, IpAddressInfo> dict)
+    private void PacketListener(ConcurrentDictionary<IPAddress, IpAddressInfo> dict)
     {
         _device.OnPacketArrival += (sender, e) =>
         {
             byte[] rawEthPacket = e.GetPacket().Data;
 
-            byte[] ethType = new byte[2] { rawEthPacket[12], rawEthPacket[13] };
+            byte[] ethType = new byte[] { rawEthPacket[12], rawEthPacket[13] };
 
             if (ethType[0] == 0x08 && ethType[1] == 0x00)
             {
@@ -73,7 +73,14 @@ public class NetworkScanner
                 {
                     // copy the IP address that packet was sent from
                     Buffer.BlockCopy(rawEthPacket, 26, ipAddr, 0, 4);
-                    Console.WriteLine("Received ICMP from " + new IPAddress(ipAddr));
+                    IPAddress ip = new IPAddress(ipAddr);
+
+                    Console.WriteLine("Caught icmp from " + ip); 
+                    
+                    if (dict.ContainsKey(ip))
+                    {
+                        dict[ip].IcmpReply = true;
+                    }
                 }
             }
             else if (ethType[0] == 0x86 && ethType[1] == 0xdd)
@@ -87,18 +94,28 @@ public class NetworkScanner
                     if (rawEthPacket[OffsetIpv6] == 0x88 && rawEthPacket[OffsetIpv6 + 4] == 0x60)
                     {
                         Buffer.BlockCopy(rawEthPacket, OffsetIpv6 + 8, ipAddr, 0, 16);
-                        Console.WriteLine("IP TARGET " + BitConverter.ToString(ipAddr));
+                        IPAddress ip = new IPAddress(ipAddr);
 
                         byte[] macAddress = new byte[6];
                         Buffer.BlockCopy(rawEthPacket, OffsetIpv6 + 26, macAddress, 0, 6);
-                        Console.WriteLine("MAC " + BitConverter.ToString(macAddress));
+
+                        if (dict.ContainsKey(ip))
+                        {
+                            dict[ip].ArpSuccess = true;
+                            dict[ip].MacAddress = BitConverter.ToString(macAddress);
+                        }
                     }
 
                     // ICMPv6 echo reply code
                     if (rawEthPacket[OffsetIpv6] == 0x81)
                     {
                         Buffer.BlockCopy(rawEthPacket, 22, ipAddr, 0, 16);
-                        Console.WriteLine("ICMP - IP TARGET " + BitConverter.ToString(ipAddr));
+                        IPAddress ip = new IPAddress(ipAddr);
+                        
+                        if (dict.ContainsKey(ip))
+                        {
+                            dict[ip].IcmpReply = true;
+                        }
                     }
                 }
             }
@@ -106,7 +123,7 @@ public class NetworkScanner
             {
                 // ARP parsing
                 
-                // if the opcode is reply
+                // if it is the reply opcode
                 if (rawEthPacket[20] == 0x00 && rawEthPacket[21] == 0x02)
                 {
                     byte[] ipAddr = new byte[4];
@@ -115,8 +132,15 @@ public class NetworkScanner
                     Buffer.BlockCopy(rawEthPacket, 28, ipAddr, 0, 4);
                     Buffer.BlockCopy(rawEthPacket, 22, macAddress, 0, 6);
 
-                    Console.WriteLine("ARP Reply from " + new IPAddress(ipAddr) + " MAC " +
-                                      BitConverter.ToString(macAddress));
+                    IPAddress ip = new IPAddress(ipAddr); 
+                    
+                    Console.WriteLine("Caught arp from " + ip); 
+                    
+                    if (dict.ContainsKey(ip))
+                    {
+                        dict[ip].ArpSuccess = true;
+                        dict[ip].MacAddress = BitConverter.ToString(macAddress);
+                    }
                 }
             }
         };
@@ -127,16 +151,17 @@ public class NetworkScanner
         _device.StartCapture();
     }
     
-    private void SendArpRequests(Dictionary<IPAddress, IpAddressInfo> destinations, IPAddress source)
+    private void SendIcmpRequests(ConcurrentDictionary<IPAddress, IpAddressInfo> destinations, IPAddress ipv4Source, IPAddress ipv6Source)
     {
         foreach (var destination in destinations.Keys)
         {
             switch (destination.AddressFamily)
             {
                 case AddressFamily.InterNetwork:
-                    _arp.SendArpRequest(destination, source, _device);
+                    _icmp.SendIcmpv4Packet(ipv4Source, destination);
                     break;
                 case AddressFamily.InterNetworkV6:
+                    _icmp6.SendIcmpv6Packet(ipv6Source, destination);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -144,19 +169,22 @@ public class NetworkScanner
         }
     }
 
-    private void SendIcmpRequests(Dictionary<IPAddress, IpAddressInfo> destinations, IPAddress source)
+    private void SendArpRequests(ConcurrentDictionary<IPAddress, IpAddressInfo> destinations, IPAddress ipv4Source, IPAddress ipv6Source)
     {
-        foreach (var destination in destinations)
+        foreach (var destination in destinations.Keys)
         {
-            switch (destination.Key.AddressFamily)
+            switch (destination.AddressFamily)
             {
                 case AddressFamily.InterNetwork:
-                    _icmp.SendIcmpv4Packet(source, destination.Key);
+                    _arp.SendArpRequest(destination, ipv4Source, _device);
                     break;
                 case AddressFamily.InterNetworkV6:
-                    //_icmp6.SendIcmpv6Packet(source, destination.Key);
+                    _ndp.SendNdpRequest(ipv6Source, destination, _device);
                     break;
+                default:
+                    throw new NotImplementedException();
             }
-        }
+        } 
     }
+
 }
