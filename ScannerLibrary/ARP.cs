@@ -1,19 +1,24 @@
 using System.Net;
+using System.Net.Sockets;
 using SharpPcap.LibPcap;
 
 namespace ScannerLibrary;
 
 public class Arp
 {
+    
+    
     /// <summary>
-    /// Create arp header and send it.
+    /// Create arp header and send it to the device.
     /// </summary>
+    /// <param name="destination">IP address of destination</param>
+    /// <param name="source">IP address of source</param>
+    /// <param name="device">Interface</param>
     public void SendArpRequest(IPAddress destination, IPAddress source, LibPcapLiveDevice device)
     {
         byte[] arpHeader = CreateArpHeader(source, destination, device);
-
-        //TODO: search internet for possibility of sending raw ethernet frames in c#
-        Console.WriteLine("Sent arp request to " + destination + " from " + source + ".");
+        
+        Console.WriteLine("Sent arp request to " + destination + " from " + source + ". From device: " + device.Name);
         device.SendPacket(arpHeader);
     }
 

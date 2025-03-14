@@ -31,22 +31,24 @@ public class NetworkScanner
     {
         _device.Open(DeviceModes.Promiscuous);
 
-        // set filter to only capture icmp, icmpv6 (ndp) and arp packets
-        //_device.Filter = "icmp or arp or (ip6 and ip6[6] == 58)";
-        
-        var listenerTask = Task.Run(() => PacketListener(destinations)); 
-        
-        SendArpRequests(destinations, ipv4Source, ipv6Source);
-        
-        await Task.Delay(timeout);
-        
+        // Set filter to only capture ICMP, ICMPv6 (NDP), and ARP packets
+        _device.Filter = "icmp or arp or (ip6 and ip6[6] == 58)";
+
+        var listenerTask = Task.Run(() => PacketListener(destinations));
+
+        SendArpRequests(destinations, ipv4Source, ipv6Source)
+    
+        Thread.Sleep(250);
+
         SendIcmpRequests(destinations, ipv4Source, ipv6Source);
-        
+    
+        // Wait for responses
         await Task.Delay(timeout);
 
+        await listenerTask;
+        
         _device.StopCapture();
         _device.Close();
-        await listenerTask;
     }
 
     /// <summary>
@@ -99,6 +101,8 @@ public class NetworkScanner
                         byte[] macAddress = new byte[6];
                         Buffer.BlockCopy(rawEthPacket, OffsetIpv6 + 26, macAddress, 0, 6);
 
+                        Console.WriteLine("Caught ndp from " + ip + " with mac " + BitConverter.ToString(macAddress)); 
+                        
                         if (dict.ContainsKey(ip))
                         {
                             dict[ip].ArpSuccess = true;
@@ -111,6 +115,8 @@ public class NetworkScanner
                     {
                         Buffer.BlockCopy(rawEthPacket, 22, ipAddr, 0, 16);
                         IPAddress ip = new IPAddress(ipAddr);
+                        
+                        Console.WriteLine("Caught icmp reply from " + ip);
                         
                         if (dict.ContainsKey(ip))
                         {
@@ -161,6 +167,7 @@ public class NetworkScanner
                     _icmp.SendIcmpv4Packet(ipv4Source, destination);
                     break;
                 case AddressFamily.InterNetworkV6:
+                    Console.WriteLine("IPv6 address found: " + destination);
                     _icmp6.SendIcmpv6Packet(ipv6Source, destination);
                     break;
                 default:
@@ -181,10 +188,7 @@ public class NetworkScanner
                 case AddressFamily.InterNetworkV6:
                     _ndp.SendNdpRequest(ipv6Source, destination, _device);
                     break;
-                default:
-                    throw new NotImplementedException();
             }
-        } 
+        }
     }
-
 }
