@@ -1,15 +1,16 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace ScannerLibrary;
+namespace ScannerLibrary.Utilities;
 
-public class IpHandler
+public class IpUtility
 {
     private const int Ipv4Length = 32; 
     private const int ReservedHostsCount = 2;
     private const int Ipv6Length = 128;
 
-    public List<IPAddress> IterateAndPrintHostIp(string ipAddress)
+    private List<IPAddress> IterateAndPrintHostIp(string ipAddress)
     {
         (string ip, int mask) = SplitIpAddress(ipAddress); 
         
@@ -156,6 +157,21 @@ public class IpHandler
         string mask = splitAddress[1];
 
         return (ipString, int.Parse(mask));
-    } 
+    }
+
+    public List<IPAddress> GetIpAddresses(IEnumerable<String> subnets) =>
+        subnets.SelectMany(IterateAndPrintHostIp).ToList();
     
+    public ConcurrentDictionary<IPAddress, ScanResult> InitializeAddressesToScan(IEnumerable<String> subnets)
+    {
+        var addresses = GetIpAddresses(subnets);
+        
+        var addressResults = new ConcurrentDictionary<IPAddress, ScanResult>();
+        foreach (IPAddress host in addresses)
+        {
+            addressResults[host] = new ScanResult { ArpSuccess = false, MacAddress = "", IcmpReply = false };
+        }
+
+        return addressResults;
+    }
 }

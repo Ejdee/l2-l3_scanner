@@ -1,28 +1,47 @@
+using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Sockets;
+using ScannerLibrary.Interfaces;
 using SharpPcap.LibPcap;
 
-namespace ScannerLibrary;
+namespace ScannerLibrary.Protocols;
 
-public class Arp
+public class Arp : IProtocol
 {
-    
-    
     /// <summary>
     /// Create arp header and send it to the device.
     /// </summary>
-    /// <param name="destination">IP address of destination</param>
-    /// <param name="source">IP address of source</param>
-    /// <param name="device">Interface</param>
-    public void SendArpRequest(IPAddress destination, IPAddress source, LibPcapLiveDevice device)
+    public void SendRequest(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
     {
-        byte[] arpHeader = CreateArpHeader(source, destination, device);
+        byte[] arpHeader = CreateHeader(source, destination, device);
         
         Console.WriteLine("Sent arp request to " + destination + " from " + source + ". From device: " + device.Name);
         device.SendPacket(arpHeader);
     }
+    
+    public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)
+    {
+        // if it is the reply opcode
+        if (rawEthPacket[20] == 0x00 && rawEthPacket[21] == 0x02)
+        {
+            byte[] ipAddr = new byte[4];
+            byte[] macAddress = new byte[6];
 
-    private static byte[] CreateArpHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
+            Buffer.BlockCopy(rawEthPacket, 28, ipAddr, 0, 4);
+            Buffer.BlockCopy(rawEthPacket, 22, macAddress, 0, 6);
+
+            IPAddress ip = new IPAddress(ipAddr); 
+                    
+            Console.WriteLine("Caught arp from " + ip); 
+                    
+            if (dict.ContainsKey(ip))
+            {
+                dict[ip].ArpSuccess = true;
+                dict[ip].MacAddress = BitConverter.ToString(macAddress);
+            }
+        }
+    }
+
+    public byte[] CreateHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
     {
         byte[] ethHeader = new byte[14];
 

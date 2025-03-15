@@ -1,11 +1,11 @@
 ﻿using CommandLine;
 
-namespace ScannerLibrary
+namespace ScannerLibrary.CLI
 {
     /// <summary>
     /// Specification of valid argument options for Parser.
     /// </summary>
-    public class Options
+    public class ArgumentOptions
     {
         [Option('i', "interface", Required = false, HelpText = "Interface to scan through")]
         public string Interface { get; set; } = string.Empty;

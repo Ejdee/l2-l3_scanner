@@ -1,18 +1,20 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using ScannerLibrary.Interfaces;
 using SharpPcap.LibPcap;
 
-namespace ScannerLibrary;
+namespace ScannerLibrary.Protocols;
 
-public class Ndp
+public class Ndp : IProtocol
 {
-    public void SendNdpRequest(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
+    public void SendRequest(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
     {
         using Socket socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Raw, ProtocolType.IcmpV6);
         
         socket.Bind(new IPEndPoint(source, 0));
         
-        byte[] nsHeader = CreateNsHeader(source, destination, device);
+        byte[] nsHeader = CreateHeader(source, destination, device);
 
         IPAddress solicitedNodeAddress = GetSolicitedNodeAddress(destination);
         
@@ -20,6 +22,26 @@ public class Ndp
         Console.WriteLine("Sent NDP request to " + solicitedNodeAddress + " from " + source);
     }
 
+    public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)
+    {
+        const int offsetIpv6 = 54;
+        byte[] ipAddr = new byte[16]; 
+        
+        Buffer.BlockCopy(rawEthPacket, offsetIpv6 + 8, ipAddr, 0, 16);
+        IPAddress ip = new IPAddress(ipAddr);
+
+        byte[] macAddress = new byte[6];
+        Buffer.BlockCopy(rawEthPacket, offsetIpv6 + 26, macAddress, 0, 6);
+
+        Console.WriteLine("Caught ndp from " + ip + " with mac " + BitConverter.ToString(macAddress)); 
+                        
+        if (dict.ContainsKey(ip))
+        {
+            dict[ip].ArpSuccess = true;
+            dict[ip].MacAddress = BitConverter.ToString(macAddress);
+        }
+    }
+    
     private IPAddress GetSolicitedNodeAddress(IPAddress destination)
     {
         byte[] addressBytes = destination.GetAddressBytes();
@@ -32,7 +54,7 @@ public class Ndp
         return new IPAddress(solicitedNodeAddress);
     }
 
-    private byte[] CreateNsHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
+    public byte[] CreateHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
     {
         byte[] nsHeader = new byte[32];
 

@@ -1,10 +1,10 @@
 using CommandLine;
 
-namespace ScannerLibrary
+namespace ScannerLibrary.CLI
 {
     public class ArgumentParser
     {
-        public Options? ParsedOptions { get; private set; }
+        public ArgumentOptions? ParsedOptions { get; private set; }
         
         /// <summary>
         /// Parse command-line arguments. Call RunOptions() on success and HandleParserError() on failure.
@@ -14,12 +14,12 @@ namespace ScannerLibrary
             // New parser instance that allows multiple occurrences of the same argument (it is needed for -s)
             Parser parser = new Parser(settings => settings.AllowMultiInstance = true);
             
-            parser.ParseArguments<Options>(args)
+            parser.ParseArguments<ArgumentOptions>(args)
                 .WithParsed(RunOptions)
                 .WithNotParsed(HandleParseError);
         }
 
-        private void RunOptions(Options? opts)
+        private void RunOptions(ArgumentOptions? opts)
         {
             ParsedOptions = opts;
         }

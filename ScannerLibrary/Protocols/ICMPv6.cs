@@ -1,22 +1,46 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using ScannerLibrary.Interfaces;
+using SharpPcap.LibPcap;
 
-namespace ScannerLibrary;
+namespace ScannerLibrary.Protocols;
 
-public class IcmpV6
+public class IcmpV6 : IProtocol
 {
-   public void SendIcmpv6Packet(IPAddress source, IPAddress destination)
+   /// <summary>
+   /// Send ICMPv6 ping request. Device parameter is not used but required by the interface.
+   /// </summary>
+   public void SendRequest(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
    {
       using Socket socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Raw, ProtocolType.IcmpV6);
       socket.Bind(new IPEndPoint(source, 0));
 
-      byte[] data = CreateIcmpv6Header(source, destination);
+      byte[] data = CreateHeader(source, destination, device);
       
       socket.SendTo(data, new IPEndPoint(destination, 0));
       Console.WriteLine("ICMPv6 packet sent from " + source + " to " + destination);
    }
+   
+   public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)
+   {
+      byte[] ipAddr = new byte[16];
+      
+      Buffer.BlockCopy(rawEthPacket, 22, ipAddr, 0, 16);
+      IPAddress ip = new IPAddress(ipAddr);
+                        
+      Console.WriteLine("Caught icmp reply from " + ip);
+                        
+      if (dict.ContainsKey(ip))
+      {
+         dict[ip].IcmpReply = true;
+      } 
+   }
 
-   private byte[] CreateIcmpv6Header(IPAddress source, IPAddress destination)
+   /// <summary>
+   /// Create ICMPv6 ping request header. Device parameter is not used but required by the interface.
+   /// </summary>
+   public byte[] CreateHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
    {
       // 8 bytes for ICMPv6 header and 56 bytes for payload
       byte[] header = new byte[8+56];
