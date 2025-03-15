@@ -29,7 +29,7 @@ public class Ndp : IProtocol
         IPAddress solicitedNodeAddress = _ipUtility.GetSolicitedNodeAddress(destination);
         
         socket.SendTo(nsHeader, new IPEndPoint(solicitedNodeAddress, 0));
-        Console.WriteLine("Sent NDP request to " + solicitedNodeAddress + " from " + source);
+        //Console.WriteLine("Sent NDP request to " + solicitedNodeAddress + " from " + source);
     }
 
     public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)

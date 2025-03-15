@@ -27,7 +27,7 @@ public class IcmpV6 : IProtocol
       byte[] data = CreateHeader(source, destination, device);
       
       socket.SendTo(data, new IPEndPoint(destination, 0));
-      Console.WriteLine("ICMPv6 packet sent from " + source + " to " + destination);
+      //Console.WriteLine("ICMPv6 packet sent from " + source + " to " + destination);
    }
    
    public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)

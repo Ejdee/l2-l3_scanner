@@ -28,7 +28,7 @@ public class IcmpV4 : IProtocol
         byte[] data = CreateHeader(source, destination, device);
 
         socket.SendTo(data, new IPEndPoint(destination, 0));
-        Console.WriteLine("ICMP request sent to " + destination + " from " + source);
+        //Console.WriteLine("ICMP request sent to " + destination + " from " + source);
     }
     
     public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)

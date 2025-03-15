@@ -13,8 +13,6 @@ public class ScanManager
         {
             throw new Exception("No interface found with interface name " + interfaceName);
         }
-        
-        _deviceManager.PrintAvailableInterfaces();
 
         var sourceIps = _deviceManager.GetSourceAddresses(device);
         

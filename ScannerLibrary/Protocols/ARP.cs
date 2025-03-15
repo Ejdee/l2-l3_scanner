@@ -14,7 +14,7 @@ public class Arp : IProtocol
     {
         byte[] arpHeader = CreateHeader(source, destination, device);
         
-        Console.WriteLine("Sent arp request to " + destination + " from " + source + ". From device: " + device.Name);
+        //Console.WriteLine("Sent arp request to " + destination + " from " + source + ". From device: " + device.Name);
         device.SendPacket(arpHeader);
     }
     
