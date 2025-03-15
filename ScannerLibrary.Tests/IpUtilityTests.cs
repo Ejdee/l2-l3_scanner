@@ -15,9 +15,24 @@ public class IpUtilityTests
         
         // Act
         string actual = ipUtility.MaskToIpv4Format(mask).ToString();
+        
 
         // Assert
         Assert.Equal(expected, actual);
+    }
+    
+    [Fact]
+    public void InvalidIpv4MaskToBinaryTest()
+    {
+        // Arrange
+        var ipUtility = new IpUtility();
+        int mask = 33;
+        
+        // Act
+        Action act = () => ipUtility.MaskToIpv4Format(mask);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
     }
     
     [Fact]
@@ -41,6 +56,20 @@ public class IpUtilityTests
         Assert.Equal(expected, actual);
         Assert.Equal(expected2, actual2);
         Assert.Equal(expected3, actual3);
+    }
+    
+    [Fact]
+    public void InvalidIpv6MaskToBinaryTest()
+    {
+        // Arrange
+        var ipUtility = new IpUtility();
+        int mask = 129;
+        
+        // Act
+        Action act = () => ipUtility.MaskToIpv6Format(mask);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
     }
 
     [Fact]
@@ -125,7 +154,7 @@ public class IpUtilityTests
         int expected = 126;
         string address2 = "192.168.0.128/29";
         int expected2 = 6;
-        string address3 = "fd00:cafe:0000:face::0/126";
+        string address3 = "fd00:cafe:0000:face::1/126";
         int expected3 = 4;
         
         
@@ -141,7 +170,7 @@ public class IpUtilityTests
     }
 
     [Fact]
-    public void GetIpAddressesTest()
+    public void GetIpv4AddressesTest()
     {
         // Arrange
         var ipUtility = new IpUtility();
@@ -154,6 +183,39 @@ public class IpUtilityTests
         
         // Act
         List<IPAddress> actual = ipUtility.GetIpAddresses(subnet);
+        
+        // Assert
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void GetIpv6AddressesTest()
+    {
+        // Arrange
+        var ipUtility = new IpUtility();
+        IEnumerable<string> subnet = new List<string>() { "fd00:cafe:0000:face::0/126" };
+        List<IPAddress> expected = new List<IPAddress>()
+            { IPAddress.Parse("fd00:cafe:0000:face::0"), IPAddress.Parse("fd00:cafe:0000:face::1") ,
+                IPAddress.Parse("fd00:cafe:0000:face::2") , IPAddress.Parse("fd00:cafe:0000:face::3")
+            };
+        
+        // Act
+        List<IPAddress> actual = ipUtility.GetIpAddresses(subnet);
+        
+        // Assert
+        Assert.Equal(expected, actual);
+    }
+    
+    [Fact]
+    public void GetSolictedNodeAddressTest()
+    {
+        // Arrange
+        var ipUtility = new IpUtility();
+        IPAddress address = IPAddress.Parse("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+        IPAddress expected = IPAddress.Parse("ff02::1:ff70:7334");
+        
+        // Act
+        IPAddress actual = ipUtility.GetSolicitedNodeAddress(address);
         
         // Assert
         Assert.Equal(expected, actual);

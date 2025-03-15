@@ -85,6 +85,11 @@ public class IpUtility
 
     internal IPAddress MaskToIpv6Format(int mask)
     {
+        if (mask is > 128 or < 0) 
+        {
+            throw new ArgumentOutOfRangeException("Invalid mask: " + mask);
+        }
+        
         byte[] maskBytes = new byte[16];
     
         int fullBytes = mask / 8;
@@ -132,8 +137,27 @@ public class IpUtility
     /// </summary>
     internal IPAddress MaskToIpv4Format(int mask)
     {
-        uint prefix = (uint)(~0 << (Ipv4Length - mask)); 
-        return new IPAddress(BitConverter.GetBytes(prefix).Reverse().ToArray());
+        if (mask is > 32 or < 0) 
+        {
+            throw new ArgumentOutOfRangeException("Invalid mask: " + mask);
+        }
+
+        byte[] maskBytes = new byte[4];
+
+        int fullBytes = mask / 8;
+        int remainingBits = mask % 8;
+
+        for (int i = 0; i < fullBytes; i++)
+        {
+            maskBytes[i] = 255;
+        }
+
+        if (fullBytes < 4 && remainingBits > 0)
+        {
+            maskBytes[fullBytes] = (byte)(255 << (8 - remainingBits));
+        }
+        
+        return new IPAddress(maskBytes);
     }
     
     /// <summary>
@@ -189,5 +213,17 @@ public class IpUtility
         }
 
         return addressResults;
+    }
+    
+    public IPAddress GetSolicitedNodeAddress(IPAddress destination)
+    {
+        byte[] addressBytes = destination.GetAddressBytes();
+        byte[] solicitedNodeAddress = new byte[16]
+        {
+            0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xFF,
+            addressBytes[13], addressBytes[14], addressBytes[15]
+        };
+
+        return new IPAddress(solicitedNodeAddress);
     }
 }

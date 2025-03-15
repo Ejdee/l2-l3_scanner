@@ -2,12 +2,20 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using ScannerLibrary.Interfaces;
+using ScannerLibrary.Utilities;
 using SharpPcap.LibPcap;
 
 namespace ScannerLibrary.Protocols;
 
 public class Ndp : IProtocol
 {
+    private readonly IpUtility _ipUtility;
+
+    public Ndp(IpUtility ipUtility)
+    {
+        _ipUtility = ipUtility;
+    }
+
     public void SendRequest(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
     {
         using Socket socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Raw, ProtocolType.IcmpV6);
@@ -16,7 +24,7 @@ public class Ndp : IProtocol
         
         byte[] nsHeader = CreateHeader(source, destination, device);
 
-        IPAddress solicitedNodeAddress = GetSolicitedNodeAddress(destination);
+        IPAddress solicitedNodeAddress = _ipUtility.GetSolicitedNodeAddress(destination);
         
         socket.SendTo(nsHeader, new IPEndPoint(solicitedNodeAddress, 0));
         Console.WriteLine("Sent NDP request to " + solicitedNodeAddress + " from " + source);
@@ -40,18 +48,6 @@ public class Ndp : IProtocol
             dict[ip].ArpSuccess = true;
             dict[ip].MacAddress = BitConverter.ToString(macAddress);
         }
-    }
-    
-    private IPAddress GetSolicitedNodeAddress(IPAddress destination)
-    {
-        byte[] addressBytes = destination.GetAddressBytes();
-        byte[] solicitedNodeAddress = new byte[16]
-        {
-            0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xFF,
-            addressBytes[13], addressBytes[14], addressBytes[15]
-        };
-
-        return new IPAddress(solicitedNodeAddress);
     }
 
     public byte[] CreateHeader(IPAddress source, IPAddress destination, LibPcapLiveDevice device)
@@ -78,7 +74,7 @@ public class Ndp : IProtocol
         Array.Copy(sourceMac, 0, nsHeader, 26, sourceMac.Length);
 
         // Checksum by ChatGPT
-        ushort checksum = CalculateIcmpChecksum(nsHeader, source, GetSolicitedNodeAddress(destination));
+        ushort checksum = CalculateIcmpChecksum(nsHeader, source, _ipUtility.GetSolicitedNodeAddress(destination));
         nsHeader[2] = (byte)(checksum >> 8); // High byte
         nsHeader[3] = (byte)(checksum & 0xFF); // Low byte 
 
