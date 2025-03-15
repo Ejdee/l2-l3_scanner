@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner", "Scanner\Scanner.csproj", "{3F8AD9EC-CDE8-463C-81A8-3CD6C5D40183}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScannerLibrary", "ScannerLibrary\ScannerLibrary.csproj", "{3DCD8703-15B6-4229-9E3E-F58E43DC47BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScannerLibrary.Tests", "ScannerLibrary.Tests\ScannerLibrary.Tests.csproj", "{BDC47A59-4A2A-47EA-BE27-B15432BA2A81}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F8AD9EC-CDE8-463C-81A8-3CD6C5D40183}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F8AD9EC-CDE8-463C-81A8-3CD6C5D40183}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F8AD9EC-CDE8-463C-81A8-3CD6C5D40183}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F8AD9EC-CDE8-463C-81A8-3CD6C5D40183}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DCD8703-15B6-4229-9E3E-F58E43DC47BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DCD8703-15B6-4229-9E3E-F58E43DC47BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DCD8703-15B6-4229-9E3E-F58E43DC47BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DCD8703-15B6-4229-9E3E-F58E43DC47BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDC47A59-4A2A-47EA-BE27-B15432BA2A81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDC47A59-4A2A-47EA-BE27-B15432BA2A81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDC47A59-4A2A-47EA-BE27-B15432BA2A81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDC47A59-4A2A-47EA-BE27-B15432BA2A81}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

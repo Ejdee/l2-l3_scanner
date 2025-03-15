@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>ScannerLibrary</RootNamespace>
@@ -11,6 +11,10 @@
       <PackageReference Include="CommandLineParser" Version="2.9.1" />
       <PackageReference Include="PacketDotNet" Version="1.4.8-pre20" />
       <PackageReference Include="SharpPcap" Version="6.3.0" />
+      <PackageReference Include="xunit" Version="2.9.3" />
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+        <_Parameter1>ScannerLibrary.Tests</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 
 </Project>

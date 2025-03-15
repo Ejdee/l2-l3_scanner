@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 
 namespace ScannerLibrary.Utilities;
 
@@ -29,7 +30,7 @@ public class IpUtility
         throw new ArgumentOutOfRangeException();
     }
 
-    private static List<IPAddress> AvailableIpv4Addresses(string ip, int mask)
+    private List<IPAddress> AvailableIpv4Addresses(string ip, int mask)
     {
         IPAddress maskedIp = MaskToIpv4Format(mask);
         
@@ -57,7 +58,7 @@ public class IpUtility
         return addresses;
     }
 
-    private static List<IPAddress> AvailableIpv6Addresses(string ip, int mask)
+    private List<IPAddress> AvailableIpv6Addresses(string ip, int mask)
     {
         IPAddress maskedIp = MaskToIpv6Format(mask);
         
@@ -82,14 +83,29 @@ public class IpUtility
         return addresses;
     }
 
-    private static IPAddress MaskToIpv6Format(int mask)
+    internal IPAddress MaskToIpv6Format(int mask)
     {
-        // IPv6 is 128 bits long, so we need to use appropriate data type
-        var prefix = (Int128)(~0 << (Ipv6Length - mask)); 
-        return new IPAddress(BitConverter.GetBytes(prefix).Reverse().ToArray());
+        byte[] maskBytes = new byte[16];
+    
+        int fullBytes = mask / 8;
+        int remainingBits = mask % 8;
+    
+        // fill the address with 255's for each full byte the mask has
+        for (int i = 0; i < fullBytes; i++)
+        {
+            maskBytes[i] = 255;
+        }
+
+        // if there are some remaining bits, fill it with the appropriate value
+        if (fullBytes < 16 && remainingBits > 0)
+        {
+            maskBytes[fullBytes] = (byte)(255 << (8 - remainingBits));
+        }
+        
+        return new IPAddress(maskBytes);
     }
 
-    private static IPAddress NextIpAddress(byte[] ipBytes)
+    internal IPAddress NextIpAddress(byte[] ipBytes)
     {
         // if there is overflow in the address, make the current byte zero and increment the byte to the left
         for (int i = ipBytes.Length-1; i >= 0; i--)
@@ -114,7 +130,7 @@ public class IpUtility
     /// <summary>
     /// Convert the mask to appropriate IP address format using bit operations.
     /// </summary>
-    private static IPAddress MaskToIpv4Format(int mask)
+    internal IPAddress MaskToIpv4Format(int mask)
     {
         uint prefix = (uint)(~0 << (Ipv4Length - mask)); 
         return new IPAddress(BitConverter.GetBytes(prefix).Reverse().ToArray());
@@ -123,7 +139,7 @@ public class IpUtility
     /// <summary>
     /// Calculate the number of available hosts from IP address.
     /// </summary>
-    public static int GetNumberOfHosts(string address)
+    public int GetNumberOfHosts(string address)
     {
         
         // Split the IP address to IP and the mask
@@ -150,7 +166,7 @@ public class IpUtility
     /// <summary>
     /// Split the IP address to IP address and mask.
     /// </summary>
-    private static (string, int)  SplitIpAddress(string address)
+    internal (string, int)  SplitIpAddress(string address)
     {
         string[] splitAddress = address.Split('/');
         string ipString = splitAddress[0];
