@@ -2,12 +2,20 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using ScannerLibrary.Interfaces;
+using ScannerLibrary.Utilities;
 using SharpPcap.LibPcap;
 
 namespace ScannerLibrary.Protocols;
 
 public class IcmpV4 : IProtocol
 {
+    private readonly ChecksumUtility _checksumUtility;
+
+    public IcmpV4(ChecksumUtility checksumUtility)
+    {
+        _checksumUtility = checksumUtility;
+    }
+
     /// <summary>
     /// Construct icmp packet and send it.
     /// </summary>
@@ -67,34 +75,10 @@ public class IcmpV4 : IProtocol
         Array.Copy(payload, 0, header, 8, payload.Length);
 
         // Checksum by ChatGPT
-        ushort checksum = CalculateIcmpChecksum(header);
+        ushort checksum = _checksumUtility.CalculateIcmpv4Checksum(header);
         header[2] = (byte)(checksum >> 8); // High byte
         header[3] = (byte)(checksum & 0xFF); // Low byte
 
         return header;
-    }
-
-    /// <summary>
-    /// 16-bit one's complement checksum by ChatGPT.
-    /// </summary>
-    private ushort CalculateIcmpChecksum(byte[] data)
-    {
-        uint sum = 0;
-
-        // Sum all 16-bit words
-        for (int i = 0; i < data.Length; i += 2)
-        {
-            ushort word = (ushort)((data[i] << 8) + (i + 1 < data.Length ? data[i + 1] : 0));
-            sum += word;
-        }
-
-        // Add carry if any
-        while ((sum >> 16) != 0)
-        {
-            sum = (sum & 0xFFFF) + (sum >> 16);
-        }
-
-        // One's complement
-        return (ushort)~sum;
     }
 }
