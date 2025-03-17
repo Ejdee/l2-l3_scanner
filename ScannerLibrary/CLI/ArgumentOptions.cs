@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using Xunit.Sdk;
 
 namespace ScannerLibrary.CLI
 {
@@ -17,6 +18,9 @@ namespace ScannerLibrary.CLI
         [Option('s', "subnet", Required = false, HelpText = "Segments to scan using IPv4 or IPv6 \"" +
                                                             "address. There can be multiple segments to be scanned.")]
         public IEnumerable<string> Subnets { get; set; } = [];
+        
+        [Option('h', "help", Required = false, HelpText = "Display help message.")]
+        public bool Help { get; set; }
     }
 }
 

@@ -78,4 +78,15 @@ public class Logger
             //}
         }
     }
+
+    public void PrintHelp()
+    {
+        Console.WriteLine("Usage: ./ipk-l2l3-scan {-h} [-i interface | --interface interface] {-w timeout} [-s ipv4-subnet | -s ipv6-subnet | --subnet ipv4-subnet | --subnet ipv6-subnet]");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  -s, --subnet <subnet>          IPv4 or IPv6 subnet to scan. There can be multiple subnets to be scanned.");
+        Console.WriteLine("  -i, --interface <interface>    One interface to scan through. If this parameter is not specified (and any other parameters as well)");
+        Console.WriteLine("                                 or if only -i/--interface is specified without a value (and any other parameters are unspecified), a list of active interfaces is printed.");
+        Console.WriteLine("  -w, --timeout <timeout>        Timeout in milliseconds to wait for responses.");
+        Console.WriteLine("  -h, --help                     Display this help message");
+    }
 }

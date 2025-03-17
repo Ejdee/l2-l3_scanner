@@ -25,4 +25,9 @@ public class ScanManager
         var logger = new Logger();
         logger.PrintResult(addressResults, subnets);
     }
+
+    public void ScanInterfaces()
+    {
+        _deviceManager.PrintAvailableInterfaces();
+    }
 }
