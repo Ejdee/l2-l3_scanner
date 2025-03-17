@@ -76,7 +76,7 @@ public class NetworkScanner
                 if (rawEthPacket[20] == 0x3a)
                 {
                     // NDP - neighbor advertisement
-                    if (rawEthPacket[OffsetIpv6] == 0x88 && rawEthPacket[OffsetIpv6 + 4] == 0x60)
+                    if (rawEthPacket[OffsetIpv6] == 0x88)
                     {
                         _ndp.ProcessResponse(rawEthPacket, dict);
                     }
