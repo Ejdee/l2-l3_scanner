@@ -30,7 +30,7 @@ internal abstract class Program
         if (argChecker.PrintInterfaces(args, parser))
         {
             scanManager.ScanInterfaces();
-            Environment.Exit(2);
+            Environment.Exit(0);
         }
 
         try
