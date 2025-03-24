@@ -190,18 +190,11 @@ The scan results were compared with `fping` tool. The command `fping -q -a -g 19
 The Wireshark log at the top is a capture of the `fping` tool. The Wireshark log at the bottom is opened `.pcap` file from the scanner. Both logs are identical. Only difference is in the command-line results. `fping` tool also marks the machine it was executed from as alive, but this project does not on purpose.
 
 #### IPv6 testing
-The scan was performed on the configured IPv6 subnet `fd00::/124`. It was then compared with following command `nmap -6 -sn fd00::/124` for **NDP** confirmation. And since I haven't found any tool that would send **ICMPv6** echo requests to whole subnet, `ping6` tool was used to ping at least those machines that were marked as alive by the scanner to confirm that they really are. 
-
-The result was as follows:
-
-![IPv6 scan](images/ipv6_wireshark_scan_result.png)
-
-At the top of the screen is the **NDP** Wireshark log. The bottom one is the **ICMPv6** ping log. Again the delay between sending **NDP** and **ICMPv6** packets was `250ms` to ensure that the **NDP** packets have enough time to be processed. One thing I did not expect is to get the **Neighbor Advertisement** message from the address `fd00::`, but after some research, I found out that it serves as **Subnet-Router Anycast** [5] address.
-Therefore, the **NDP** was successful but the **ICMPv6** ping was replied with the **unicast address** of the router, which is `fd00::1`.
+The scan was performed on the configured IPv6 subnet `fd00::/124`. It was then compared with following command `nmap -6 -sn fd00::/124` for **NDP** confirmation. And since I haven't found any tool that would send **ICMPv6** echo requests to whole subnet, `fping 6` tool was used to ping at least those machines that were marked as alive by the scanner to confirm that they really are. 
 
 #### NDP testing
 
-![NDP comparison](images/nmap_vs_mine_ndp.png)
+![NDP comparison](images/nmap_ndp_vs_mine_corrected.png)
 
 The important packets in Wireshark are highlighted. The top log is the `nmap` capture. The bottom log is the scanner capture. The results are expected and the scanner captured the **MAC** addresses correctly. The only difference is the **destination IP address** of the **Neighbor Advertisement** messages. It is because the machine has a second **IPv6 address** and the scanner chose that one as the source address for the **NS** messages.
 
@@ -209,7 +202,7 @@ The important packets in Wireshark are highlighted. The top log is the `nmap` ca
 
 #### ICMPv6 testing
 
-![ICMPv6 comparison](images/icmpv6_nmap_vs_mine.png)
+![ICMPv6 comparison](images/icmpv6_fping_vs_mine_corrected.png)
 
 The top log is the `nmap` capture. The bottom one is the scanner log. The results are identical apart from the **source IP address** of the echo requests again.
 
@@ -221,5 +214,3 @@ The top log is the `nmap` capture. The bottom one is the scanner log. The result
 [3] POSTEL, Jon. Internet Control Message Protocol. [online]. Internet Engineering Task Force (IETF), September 1981. RFC 792. Available at: https://datatracker.ietf.org/doc/html/rfc792.
 
 [4] VESELÝ. IPK2020/21L – 06 – IPv6 síťová vrstva. [online]. Brno University of Technology, Faculty of Information Technology, 2020.
-
-[5] CISCO PRESS. Understanding IPv6. [online]. Cisco, 2017. Available at: https://www.ciscopress.com/articles/article.asp?p=2803866&seqNum=6.
