@@ -1,4 +1,4 @@
-# Project 1 - DELTA: L2/L2 Scanner
+# Project 1 - DELTA: L2/L3 Scanner
 ---
 - **Author:** Adam Běhoun
 - **Login:** xbehoua00
