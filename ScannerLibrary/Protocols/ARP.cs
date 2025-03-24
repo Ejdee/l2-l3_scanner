@@ -31,7 +31,7 @@ public class Arp : IProtocol
 
             IPAddress ip = new IPAddress(ipAddr); 
                     
-            Console.WriteLine("Caught arp from " + ip); 
+            //Console.WriteLine("Caught arp from " + ip); 
                     
             if (dict.ContainsKey(ip))
             {

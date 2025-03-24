@@ -45,7 +45,7 @@ public class IcmpV4 : IProtocol
             Buffer.BlockCopy(rawEthPacket, 26, ipAddr, 0, 4);
             IPAddress ip = new IPAddress(ipAddr);
 
-            Console.WriteLine("Caught icmp from " + ip); 
+            //Console.WriteLine("Caught icmp from " + ip); 
                     
             if (dict.ContainsKey(ip))
             {

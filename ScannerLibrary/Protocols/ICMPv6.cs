@@ -37,7 +37,7 @@ public class IcmpV6 : IProtocol
       Buffer.BlockCopy(rawEthPacket, 22, ipAddr, 0, 16);
       IPAddress ip = new IPAddress(ipAddr);
                         
-      Console.WriteLine("Caught icmp reply from " + ip);
+      //Console.WriteLine("Caught icmp reply from " + ip);
                         
       if (dict.ContainsKey(ip))
       {

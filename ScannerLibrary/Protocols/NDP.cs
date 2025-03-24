@@ -34,8 +34,10 @@ public class Ndp : IProtocol
 
     public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)
     {
+        const int minPacketSize = 86; 
+        
         // the packet is too small
-        if (rawEthPacket.Length <= 64) return; 
+        if (rawEthPacket.Length < minPacketSize) return; 
         
         const int offsetIpv6 = 54;
         byte[] ipAddr = new byte[16]; 
@@ -46,7 +48,7 @@ public class Ndp : IProtocol
         byte[] macAddress = new byte[6];
         Buffer.BlockCopy(rawEthPacket, offsetIpv6 + 26, macAddress, 0, 6);
 
-        Console.WriteLine("Caught ndp from " + ip + " with mac " + BitConverter.ToString(macAddress)); 
+        //Console.WriteLine("Caught ndp from " + ip + " with mac " + BitConverter.ToString(macAddress)); 
                         
         if (dict.ContainsKey(ip))
         {
