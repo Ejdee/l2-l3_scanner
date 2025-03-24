@@ -9,10 +9,6 @@ public class ScanManager
     public async Task ScanAsync(string interfaceName, int timeout, IEnumerable<string> subnets)
     {
         var device = _deviceManager.GetDevice(interfaceName);
-        if (device == null)
-        {
-            throw new Exception("No interface found with interface name " + interfaceName);
-        }
 
         var sourceIps = _deviceManager.GetSourceAddresses(device);
         

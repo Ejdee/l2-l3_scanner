@@ -35,7 +35,7 @@ public class Ndp : IProtocol
     public void ProcessResponse(byte[] rawEthPacket, ConcurrentDictionary<IPAddress, ScanResult> dict)
     {
         // the packet is too small
-        if (rawEthPacket.Length < 60) return; 
+        if (rawEthPacket.Length <= 64) return; 
         
         const int offsetIpv6 = 54;
         byte[] ipAddr = new byte[16]; 

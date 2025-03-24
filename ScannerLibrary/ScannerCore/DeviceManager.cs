@@ -9,7 +9,7 @@ public class DeviceManager
         LibPcapLiveDeviceList.Instance.Where(d => d.Addresses.Count > 0).ToList();
 
     public LibPcapLiveDevice GetDevice(string interfaceName) =>
-        GetAvailableInterfaces().FirstOrDefault(d => d.Name == interfaceName) ?? throw new InvalidOperationException();
+        GetAvailableInterfaces().FirstOrDefault(d => d.Name == interfaceName) ?? throw new InvalidOperationException("This interface doesn't exist");
 
     public List<IPAddress> GetSourceAddresses(LibPcapLiveDevice device)
     {

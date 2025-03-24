@@ -23,11 +23,11 @@ public class ArgumentChecker
             Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
             Environment.Exit(1);
         }
-        if (args.Count(a => a is "-s" or "--subnet") == 0)
-        {
-            Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
-            Environment.Exit(1);
-        }
+        //if (args.Count(a => a is "-s" or "--subnet") == 0)
+        //{
+        //    Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
+        //    Environment.Exit(1);
+        //}
     }
     
     private bool InterfaceSpecified(string[] args) => args.Any(a => a is "-i" or "--interface");
@@ -41,6 +41,11 @@ public class ArgumentChecker
 
     public bool PrintInterfaces(string[] args, ArgumentParser parser)
     {
-        return !ArgumentsSpecified(args) || (InterfaceSpecified(args) && parser.ParsedOptions!.Interface == string.Empty && !WaitSpecified(args) && !SubnetSpecified(args));
+        if (parser.ParsedOptions == null)
+        {
+            Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
+            Environment.Exit(1);
+        }
+        return !ArgumentsSpecified(args) || (InterfaceSpecified(args) && parser.ParsedOptions.Interface == string.Empty && !WaitSpecified(args) && !SubnetSpecified(args));
     }
 }
