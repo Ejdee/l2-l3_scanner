@@ -1,3 +1,4 @@
+using System.Net;
 using ScannerLibrary.Utilities;
 
 namespace ScannerLibrary.CLI;
@@ -23,11 +24,21 @@ public class ArgumentChecker
             Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
             Environment.Exit(1);
         }
-        //if (args.Count(a => a is "-s" or "--subnet") == 0)
-        //{
-        //    Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
-        //    Environment.Exit(1);
-        //}
+
+        foreach (var subnet in parser.ParsedOptions.Subnets)
+        {
+            var ip = subnet.Split('/');
+            if (ip.Length != 2)
+            {
+                Console.Error.WriteLine("Invalid arguments. Use -h or --help for help.");
+                Environment.Exit(1);
+            }
+            if (!ValidIp(ip[0]))
+            {
+                Console.Error.WriteLine("Invalid subnet. Use -h or --help for help.");
+                Environment.Exit(1);
+            }
+        }
     }
     
     private bool InterfaceSpecified(string[] args) => args.Any(a => a is "-i" or "--interface");
@@ -48,4 +59,6 @@ public class ArgumentChecker
         }
         return !ArgumentsSpecified(args) || (InterfaceSpecified(args) && parser.ParsedOptions.Interface == string.Empty && !WaitSpecified(args) && !SubnetSpecified(args));
     }
+    
+    private bool ValidIp(string ip) => IPAddress.TryParse(ip, out _);
 }
