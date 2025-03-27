@@ -5,6 +5,23 @@
 ---
 This project is implemented in C# using .NET 8.0 in an object-oriented manner.
 
+## Table of Contents
+
+- [Command-line arguments](#command-line-arguments)
+- [Subnet processing](#subnet-processing)
+    - [Subnetting](#subnetting)
+    - [Calculating available hosts](#calculating-available-hosts)
+    - [Extracting the IP addresses](#extracting-the-ip-addresses)
+- [Protocols](#protocols)
+    - [ARP protocol](#arp-protocol)
+    - [ICMPv4 protocol](#icmpv4-protocol)
+    - [NDP protocol](#ndp-protocol)
+    - [ICMPv6 protocol](#icmpv6-protocol)
+- [Testing](#testing)
+    - [Automated testing](#automated-testing)
+    - [Manual testing](#manual-testing)
+- [Bibliography](#bibliography)
+
 ## Command-line arguments
 Usage: `./ipk-l2l3-scan {-h} [-i interface | --interface interface] {-w timeout} [-s ipv4-subnet | -s ipv6-subnet | --subnet ipv4-subnet | --subnet ipv6-subnet]`
 
@@ -35,7 +52,7 @@ Process of dividing a network into smaller networks called **subnets**. The boun
 ### Calculating available hosts
 Determining the number of available hosts in a subnet is done using formulas.
 - Formula used for an IPv4 subnet is `2^(32 - subnet_mask) - 2`. The `-2` is there because the first and last addresses are reserved for the **network address** and **broadcast address**.
-- Formula used fo an IPv6 subnet is `2^(128 - subnet_mask)`. The first and last addresses are not reserved in IPv6, so there is no need to subtract `2`.
+- Formula used for an IPv6 subnet is `2^(128 - subnet_mask) - 1`. There is no broadcast address in IPv6, and the first address is reserved for **subnet-router anycast address** [5] therefore the `-1`. The exception is the `/127` subnet, where both addresses can be used for hosts [6].
 
 ### Extracting the IP addresses
 The program uses the following algorithm to extract and store all the available IP addresses in the subnet. `List<IPAddress>` is used to store the addresses.
@@ -162,7 +179,7 @@ The subnets were set up as follows:
 - **IPv6 subnet**: `fd00::/124`
 
 The virtual machines were set up as follows:
-- **Machine 1 (Performing the scan)**: IPv4: 192.168.100.2/24, IPv6: fd00::2/124
+- **Machine 1 (Performing the scan)**: IPv4: 192.168.100.2/24, IPv6: fd00::2/124 and fe80::5054:ff:fee7:1f2a/64
 - **Machine 2**: IPv4: 192.168.100.3/24, IPv6: fd00::3/124
 - **Machine 3**: IPv4: 192.168.100.4/24, IPv6: fd00::4/124
 - **Machine 4**: IPv4: 192.168.100.5/24, IPv6: fd00::5/124
@@ -172,7 +189,8 @@ The results were as follows:
 #### ARP testing
 - The scan was performed on the IPv4 subnet `192.168.100.0/24` and saved to the `.pcap` file. Then the command `nmap -4 -sn 192.168.100.0/24` was executed to compare the results.
 
-Output from the scanner:
+Output from the scanner using `./ipk-l2l3-scanner -i enp1s0 -s 192.168.100.1/24 -w 5000`:
+
 ![ARP output](images/arp_vm_wireshark_log.png)
 The Wireshark displays ARP requests with expected ARP replies. The address `192.168.100.1` is the gateway address. The program correctly captured the MAC addresses of the IP addresses. There are 3 windows displaying the MAC addresses with the corresponding IP addresses that are the same as the scanner output.
 
@@ -189,14 +207,14 @@ The scan results were compared with `fping` tool. The command `fping -q -a -g 19
 
 ![ICMPv4 comparison](images/nmap_icmp_vs_mine.png)
 
-The Wireshark log at the top is a capture of the `fping` tool. The Wireshark log at the bottom is opened `.pcap` file from the scanner. Both logs are identical. Only difference is in the command-line results. `fping` tool also marks the machine it was executed from as alive, but this project does not on purpose.
+The Wireshark log at the top is a capture of the `fping` tool. The Wireshark log at the bottom is opened `.pcap` file from the same scanning that was referenced for **ARP** testing. Both logs are identical. Only difference is in the command-line results. `fping` tool also marks the machine it was executed from as alive, but this project does not on purpose.
 
 #### IPv6 testing
 The scan was performed on the configured IPv6 subnet `fd00::/124`. It was then compared with following command `nmap -6 -sn fd00::/124` for **NDP** confirmation. And since I haven't found any tool that would send **ICMPv6** echo requests to whole subnet, `fping 6` tool was used to ping at least those machines that were marked as alive by the scanner to confirm that they really are. 
 
 #### NDP testing
 
-![NDP comparison](images/nmap_ndp_vs_mine_corrected.png)
+![NDP comparison](images/nmap_ndp_vs_mine_corrected_with_update.png)
 
 The important packets in Wireshark are highlighted. The top log is the `nmap` capture. The bottom log is the scanner capture. The results are expected and the scanner captured the **MAC** addresses correctly. The only difference is the **destination IP address** of the **Neighbor Advertisement** messages. It is because the machine has a second **IPv6 address** and the scanner chose that one as the source address for the **NS** messages.
 
@@ -216,3 +234,7 @@ The top log is the `nmap` capture. The bottom one is the scanner log. The result
 [3] POSTEL, Jon. Internet Control Message Protocol. [online]. Internet Engineering Task Force (IETF), September 1981. RFC 792. Available at: https://datatracker.ietf.org/doc/html/rfc792.
 
 [4] VESELÝ. IPK2020/21L – 06 – IPv6 síťová vrstva. [online]. Brno University of Technology, Faculty of Information Technology, 2020.
+
+[5] R. Hinden and S. Deering, IP Version 6 Addressing Architecture, RFC 4291, Feb. 2006. [online]. Available at: https://www.rfc-editor.org/rfc/rfc4291.html
+
+[6] R. Hinden and D. Meyer, Using 127-bit IPv6 prefixes on inter-router links, RFC 6164, Apr. 2011. [online]. Available at: https://datatracker.ietf.org/doc/html/rfc6164

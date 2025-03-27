@@ -8,8 +8,9 @@ namespace ScannerLibrary.Utilities;
 public class IpUtility
 {
     private const int Ipv4Length = 32; 
-    private const int ReservedHostsCount = 2;
+    private const int ReservedHostsCountForIpv4 = 2;
     private const int Ipv6Length = 128;
+    private const int ReservedHostsCountForIpv6 = 1;
 
     private List<IPAddress> IterateAndPrintHostIp(string ipAddress)
     {
@@ -73,11 +74,19 @@ public class IpUtility
             lastAddress[i] = (byte)(ipBytes[i] | ~maskedIpBytes[i]);
         } 
         
-        List<IPAddress> addresses = [new IPAddress(firstAddress)];
+        List<IPAddress> addresses = [];
+        
+        // add the first address if the mask is 127 (special case documented in README)
+        if (mask == 127)
+        {
+            addresses.Add(new IPAddress(firstAddress));
+        }
+        
         while (!Equals(new IPAddress(lastAddress), NextIpAddress(firstAddress)))
         {
             addresses.Add(new IPAddress(firstAddress));
         }
+        
         addresses.Add(new IPAddress(lastAddress));
         
         return addresses;
@@ -175,9 +184,15 @@ public class IpUtility
             switch (ipAddress.AddressFamily)
             {
                 case AddressFamily.InterNetwork:
-                    return (int)(Math.Pow(2, Ipv4Length - mask)) - ReservedHostsCount;
+                    return (int)(Math.Pow(2, Ipv4Length - mask)) - ReservedHostsCountForIpv4;
                 case AddressFamily.InterNetworkV6:
-                    return (int)(Math.Pow(2, Ipv6Length - mask));
+
+                    // if the mask is 127, we can use both the addresses
+                    if (mask == 127) { return 2; }
+                    
+                    // otherwise we can use -1 from the total number of addresses
+                    return (int)(Math.Pow(2, Ipv6Length - mask)) - ReservedHostsCountForIpv6;
+                
                 default:
                     Console.WriteLine("Not a valid IP address");
                     throw new ArgumentOutOfRangeException();

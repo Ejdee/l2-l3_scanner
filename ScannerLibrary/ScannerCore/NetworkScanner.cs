@@ -108,7 +108,6 @@ public class NetworkScanner
                     _icmp.SendRequest(ipv4Source, destination, _device);
                     break;
                 case AddressFamily.InterNetworkV6:
-                    Console.WriteLine("IPv6 address found: " + destination);
                     _icmp6.SendRequest(ipv6Source, destination, _device);
                     break;
                 default:

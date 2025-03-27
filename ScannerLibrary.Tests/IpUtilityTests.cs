@@ -155,18 +155,22 @@ public class IpUtilityTests
         string address2 = "192.168.0.128/29";
         int expected2 = 6;
         string address3 = "fd00:cafe:0000:face::1/126";
-        int expected3 = 4;
+        int expected3 = 3;
+		string address4 = "fd00:cafe:0000:face::1/127";
+		int expected4 = 2;
         
         
         // Act
         int actual = ipUtility.GetNumberOfHosts(address);
         int actual2 = ipUtility.GetNumberOfHosts(address2);
         int actual3 = ipUtility.GetNumberOfHosts(address3);
+		int actual4 = ipUtility.GetNumberOfHosts(address4);
         
         // Assert
         Assert.Equal(expected, actual);
         Assert.Equal(expected2, actual2);
         Assert.Equal(expected3, actual3);
+		Assert.Equal(expected4, actual4);
     }
 
     [Fact]
@@ -195,15 +199,24 @@ public class IpUtilityTests
         var ipUtility = new IpUtility();
         IEnumerable<string> subnet = new List<string>() { "fd00:cafe:0000:face::0/126" };
         List<IPAddress> expected = new List<IPAddress>()
-            { IPAddress.Parse("fd00:cafe:0000:face::0"), IPAddress.Parse("fd00:cafe:0000:face::1") ,
+            { IPAddress.Parse("fd00:cafe:0000:face::1") ,
                 IPAddress.Parse("fd00:cafe:0000:face::2") , IPAddress.Parse("fd00:cafe:0000:face::3")
             };
+
+		IEnumerable<string> subnet2 = new List<string>() { "fd00:cafe:0000:face::0/127" };
+		List<IPAddress> expected2 = new List<IPAddress>()
+			{
+				IPAddress.Parse("fd00:cafe:0000:face::0"),
+				IPAddress.Parse("fd00:cafe:0000:face::1")
+			};
         
         // Act
         List<IPAddress> actual = ipUtility.GetIpAddresses(subnet);
+		List<IPAddress> actual2 = ipUtility.GetIpAddresses(subnet2);
         
         // Assert
         Assert.Equal(expected, actual);
+		Assert.Equal(expected2, actual2);
     }
     
     [Fact]
