@@ -214,6 +214,8 @@ The scan was performed on the configured IPv6 subnet `fd00::/124`. It was then c
 
 #### NDP testing
 
+Scanner settings: `./ipk-l2l3-scanner -i enp1s0 -s fd00::1/124 -w 5000`
+
 ![NDP comparison](images/nmap_ndp_vs_mine_corrected_with_update.png)
 
 The important packets in Wireshark are highlighted. The top log is the `nmap` capture. The bottom log is the scanner capture. The results are expected and the scanner captured the **MAC** addresses correctly. The only difference is the **destination IP address** of the **Neighbor Advertisement** messages. It is because the machine has a second **IPv6 address** and the scanner chose that one as the source address for the **NS** messages.
@@ -221,6 +223,8 @@ The important packets in Wireshark are highlighted. The top log is the `nmap` ca
 ![IPv6 configuration](images/ipv6_configuration_scanner_machine.png)
 
 #### ICMPv6 testing
+
+Scanner settings: `./ipk-l2l3-scanner -i enp1s0 -s fd00::1/124 -w 5000`
 
 ![ICMPv6 comparison](images/icmpv6_fping_vs_mine_corrected.png)
 
