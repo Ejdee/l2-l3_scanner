@@ -10,10 +10,10 @@ public class ScanManager
     {
         var device = _deviceManager.GetDevice(interfaceName);
 
-        var sourceIps = _deviceManager.GetSourceAddresses(device);
-        
         var ipHandler = new IpUtility();
         var addressResults = ipHandler.InitializeAddressesToScan(subnets);
+
+        var sourceIps = _deviceManager.GetSourceAddresses(device, addressResults);
 
         var scanner = new NetworkScanner(device);
         await scanner.ScanNetwork(sourceIps[0], sourceIps[1], addressResults, timeout);

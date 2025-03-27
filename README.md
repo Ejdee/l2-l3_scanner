@@ -15,11 +15,13 @@ The command-line arguments are parsed using the `CommandLineParser` NuGet packag
 - if the arguments are not valid, the program terminates with an error message.
 
 #### Active interfaces on the network
-The interface that has an IP address assigned is considered active. The program uses the `SharpPcap` library to determine the active interfaces. All the available interfaces are considered, but only those with at least one assigned IP address are filtered and listed afterwards.
+The interface that has an IP address assigned and its status is "UP" is considered active. All the available interfaces are considered, but only those with at least one assigned IP address and status "UP" are filtered and listed afterward.
 
 ```csharp
-    private List<LibPcapLiveDevice> GetAvailableInterfaces() =>
-        LibPcapLiveDeviceList.Instance.Where(d => d.Addresses.Count > 0).ToList();
+var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
+...
+if (i.OperationalStatus != OperationalStatus.Up) { continue; }
+if (ipAddresses.Count == 0) { continue; }
 ```
 
 ## Subnet processing
