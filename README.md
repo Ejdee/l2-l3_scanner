@@ -1,7 +1,6 @@
-# Project 1 - DELTA: L2/L3 Scanner
+# L2/L3 Scanner
 ---
 - **Author:** Adam Běhoun
-- **Login:** xbehoua00
 ---
 This project is implemented in C# using .NET 8.0 in an object-oriented manner.
 
